@@ -6,11 +6,14 @@ from django.http import Http404
 from rest_framework.response import Response
 from rest_framework.reverse import reverse
 from rest_framework.views import APIView
+from rest_framework.renderers import BrowsableAPIRenderer
 from www.api.clients import OneBusAway
 from www.api.models import agency_lists, agencies, region_list, regions
+from www.api.renderers import JSONRenderer
 
 
 class BaseView(APIView):
+    renderer_classes = (JSONRenderer, BrowsableAPIRenderer)
 
     def metadata(self, request):
         data = super(BaseView, self).metadata(request)
