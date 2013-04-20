@@ -1,7 +1,6 @@
 from django.conf.urls import patterns, include, url
+from www.api.views import AgencyDetail, ApiRoot, RegionDetail, RegionList
 
-# Uncomment the next two lines to enable the admin:
-# from django.contrib import admin
 # admin.autodiscover()
 
 urlpatterns = patterns('',
@@ -15,3 +14,13 @@ urlpatterns = patterns('',
     # Uncomment the next line to enable the admin:
     # url(r'^admin/', include(admin.site.urls)),
 )
+
+urlpatterns += patterns('www.api.views',
+                        url(r'^api/$', ApiRoot.as_view(), name='api_root'),
+                        url(r'^api/regions/$', RegionList.as_view(),
+                            name='regions-list'),
+                        url(r'^api/regions/(?P<id>\w+)/$',
+                            RegionDetail.as_view(), name='region-detail'),
+                        url(r'^api/regions/(?P<region>\w+)'
+                            r'/agencies/(?P<id>\w+)/$',
+                            AgencyDetail.as_view(), name='agency-detail'))
