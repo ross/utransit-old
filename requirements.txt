@@ -1,3 +1,5 @@
 Django
-django-rest
+django-filter
+djangorestframework
+Markdown
 requests-futures
