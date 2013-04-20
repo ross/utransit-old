@@ -1,1 +1,1 @@
-django-debug-toolbar
+-e git+https://github.com/w-diesel/django-debug-toolbar.git@patch-3#egg=django-debug-toolbar
