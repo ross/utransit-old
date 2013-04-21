@@ -7,7 +7,7 @@ from rest_framework.response import Response
 from rest_framework.reverse import reverse
 from rest_framework.views import APIView
 from rest_framework.renderers import BrowsableAPIRenderer
-from www.api.clients import OneBusAway
+from www.api.clients import get_provider
 from www.api.models import agency_lists, agencies, region_list, regions
 from www.api.renderers import JSONRenderer
 
@@ -41,8 +41,9 @@ class RegionList(BaseView):
     A list of Regions
     '''
 
+
     def get_data(self, request):
-        return region_list
+        return [region.data for region in region_list]
 
 
 class RegionDetail(BaseView):
@@ -53,8 +54,8 @@ class RegionDetail(BaseView):
     def get_data(self, request, id):
         if id not in regions:
             raise Http404()
-        data = dict(regions[id])
-        data['agencies'] = agency_lists[id]
+        data = regions[id].data
+        data['agencies'] = [agency.data for agency in agency_lists[id]]
         return data
 
 
@@ -64,9 +65,10 @@ class AgencyDetail(BaseView):
     '''
 
     def get_data(self, request, region, id):
-        future = OneBusAway().routes(1)
         if id not in agencies:
             raise Http404()
-        data = dict(agencies[id])
-        data['routes'] = future.result().routes
+        agency = agencies[id]
+        future = get_provider(agency.provider).routes(id)
+        data = agency.data
+        data['routes'] = [route.data for route in future.result().routes]
         return data

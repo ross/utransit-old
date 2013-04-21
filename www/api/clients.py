@@ -31,3 +31,14 @@ class OneBusAway:
             '{0}.json'.format(agency)
         params = {'key': 'e5ca6a2f-d074-4657-879e-6b572b3364bd'}
         return session.get(url, params=params, background_callback=_route_cb)
+
+
+
+class NextBus:
+    pass
+
+
+def get_provider(id):
+    if id == 'OneBusAway':
+        return OneBusAway()
+    raise Exception('unknown provider')
