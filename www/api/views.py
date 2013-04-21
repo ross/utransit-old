@@ -4,10 +4,11 @@
 
 from django.http import Http404, HttpResponseRedirect
 from django.shortcuts import get_object_or_404
+from rest_framework import generics, serializers
+from rest_framework.renderers import BrowsableAPIRenderer
 from rest_framework.response import Response
 from rest_framework.reverse import reverse
 from rest_framework.views import APIView
-from rest_framework.renderers import BrowsableAPIRenderer
 from www.api.clients import get_provider
 from www.api.models import Agency, Region
 from www.api.renderers import JSONRenderer
@@ -30,24 +31,39 @@ def api_root(request):
     return HttpResponseRedirect(reverse('regions-list', request=request))
 
 
-class RegionList(BaseView):
+class RegionSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Region
+
+
+class RegionList(generics.ListAPIView):
     '''
     A list of Regions
     '''
+    model = Region
+    serializer_class = RegionSerializer
 
 
-    def get_data(self, request):
-        return Region.objects.all()
+class AgencySerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Agency
 
 
-class RegionDetail(BaseView):
+class RegionDetailSerializer(serializers.ModelSerializer):
+    agencies = AgencySerializer(many=True)
+
+    class Meta:
+        model = Region
+
+
+class RegionDetail(generics.RetrieveAPIView):
     '''
     A Region's details
     '''
-
-    def get_data(self, request, pk):
-        region = get_object_or_404(Region, pk=pk)
-        return region.data
+    model = Region
+    serializer_class = RegionDetailSerializer
 
 
 class AgencyDetail(BaseView):
