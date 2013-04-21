@@ -9,7 +9,7 @@ from rest_framework.reverse import reverse
 from rest_framework.views import APIView
 from rest_framework.renderers import BrowsableAPIRenderer
 from www.api.clients import get_provider
-from www.api.models import Region, agency_lists, agencies
+from www.api.models import Agency, Region
 from www.api.renderers import JSONRenderer
 
 
@@ -37,7 +37,7 @@ class RegionList(BaseView):
 
 
     def get_data(self, request):
-        return [region.data for region in Region.objects.all()]
+        return Region.objects.all()
 
 
 class RegionDetail(BaseView):
@@ -47,7 +47,6 @@ class RegionDetail(BaseView):
 
     def get_data(self, request, pk):
         region = get_object_or_404(Region, pk=pk)
-        region.agencies = agency_lists[pk]
         return region.data
 
 
@@ -57,9 +56,7 @@ class AgencyDetail(BaseView):
     '''
 
     def get_data(self, request, region, pk):
-        if pk not in agencies:
-            raise Http404()
-        agency = agencies[pk]
+        agency = get_object_or_404(Agency, pk=pk)
         future = get_provider(agency.provider).routes(pk)
         data = agency.data
         data['routes'] = future.result().routes
@@ -72,9 +69,8 @@ class RouteDetail(BaseView):
     '''
 
     def get_data(self, request, region, agency, pk):
-        if agency not in agencies:
-            raise Http404()
-        future = get_provider(agencies[agency].provider).stops(agency, pk)
+        agency = get_object_or_404(Agency, pk=agency)
+        future = get_provider(agency.provider).stops(agency.id, pk)
         return future.result().route
 
 
@@ -84,8 +80,6 @@ class RouteStopDetail(BaseView):
     '''
 
     def get_data(self, request, region, agency, route, pk):
-        if agency not in agencies:
-            raise Http404()
-        future = get_provider(agencies[agency].provider).stop(agency, route,
-                                                              pk)
+        agency = get_object_or_404(Agency, pk=agency)
+        future = get_provider(agency.provider).stop(agency.id, route, pk)
         return future.result().stop

@@ -10,39 +10,40 @@ class Region(models.Model):
     id = models.CharField(max_length=32, primary_key=True)
     name = models.CharField(max_length=128)
     sign = models.CharField(max_length=8)
-    agencies = None
 
     @property
     def data(self):
-        data = {'id': self.id, 'name': self.name, 'sign': self.sign}
-        if self.agencies:
-            data['agencies'] = self.agencies
+        return {'id': self.id, 'name': self.name, 'sign': self.sign,
+                'agencies': self.agencies.all()}
         return data
+
+    def __unicode__(self):
+        return self.name
 
     class Meta:
         ordering = ('name',)
 
 
-#sf = Region('sf', 'San Francisco Bay Area', 'SF')
-#sea = Region('sea', 'Seattle Area', 'SEA')
-#regions = {sf.id: sf, sea.id: sea}
-#region_list = (sf, sea)
+_provider_choices = (('NextBus', 'NextBus'), ('OneBusAway', 'OneBusAway'))
 
 
-class Agency:
-
-    def __init__(self, id, name, sign, region_id, provider, url, timezone,
-                 lang=None, phone=None, fare_url=None):
-        self.id = id
-        self.name = name
-        self.sign = sign
-        self.region_id = region_id
-        self.provider = provider
-        self.url = url
-        self.timezone = timezone
-        self.lang = lang
-        self.phone = phone
-        self.fare_url = fare_url
+class Agency(models.Model):
+    # TODO: create a task that scans proviers for new agencies and adds them
+    #       that'll allow listing of unattached stuff so that we can add it to
+    #       a region
+    id = models.CharField(max_length=32, primary_key=True)
+    name = models.CharField(max_length=128)
+    sign = models.CharField(max_length=8)
+    region = models.ForeignKey(Region, blank=True, null=True,
+                               related_name='agencies')
+    url = models.URLField(max_length=256)
+    # TODO: choices to limit to valid timezone names
+    timezone = models.CharField(max_length=32)
+    # TODO: choices to limit to valid iso lang codes
+    lang = models.CharField(max_length=2, blank=True, null=True)
+    phone = models.CharField(max_length=32, blank=True, null=True)
+    fare_url = models.URLField(max_length=256, blank=True, null=True)
+    provider = models.CharField(max_length=16, choices=_provider_choices)
 
     @property
     def data(self):
@@ -51,52 +52,59 @@ class Agency:
                 'region': self.region_id, 'lang': self.lang,
                 'phone': self.phone, 'fare_url': self.fare_url}
 
+    def __unicode__(self):
+        return '{0} ({1})'.format(self.name, self.region_id)
 
-actransit = Agency('actransit', 'AC Transit', 'AC', 'sf', 'NextBus',
-                   'http://www.actransit.org/', 'America/Los_Angeles', 'en',
-                   '511',
-                   'http://www.actransit.org/rider-info/fares-tickets-passes/')
-# bart
-emery = Agency('emery', 'Emery-Go-Round', 'EM', 'sf', 'NextBus',
-               'http://www.emerygoround.com/', 'America/Los_Angeles', 'en',
-               '510-451-3862')
-muni = Agency('sf-muni', 'San Francisco MUNI', 'MUNI', 'sf', 'NextBus',
-              'http://www.sfmta.com/', 'America/Los_Angeles', 'en',
-              '311', 'http://www.sfmta.com/cms/mfares/fareinfo.htm')
+    class Meta:
+        ordering = ('name',)
+        verbose_name_plural = 'agencies'
 
-city_of_seattle = Agency('23', 'City of Seattle', 'CoS', 'sea', 'OneBusAway',
-                         'http://www.seattle.gov/transportation/',
-                         'America/Los_Angeles', 'en', '206-684-7623')
-community_transit = Agency('29', 'Community Transit', 'CT', 'sea',
-                           'OneBusAway', 'http://www.communitytransit.org/',
-                           'America/Los_Angeles', 'en', '800-562-1379')
-metro = Agency('1', 'Metro Transit', 'METRO', 'sea', 'OneBusAway',
-               'http://metro.kingcounty.gov/', 'America/Los_Angeles', 'en',
-               '206-553-3000',
-               'http://metro.kingcounty.gov/tops/bus/fare/fare-info.html')
-seattle_childrens_hospital = Agency('sch', "Seattle Children's Hospital",
-                                    'SCH', 'sea', 'OneBusAway',
-                                    'http://seattlechildrens.org/',
-                                    'America/Los_Angeles', 'en')
-seattle_streetcar = Agency('seattle-sc', 'Seattle Streetcar', 'SS', 'sea',
-                           'NextBus', 'http://www.seattlestreetcar.org/',
-                           'America/Los_Angeles', 'en', '206.553.3000',
-                           'http://www.seattlestreetcar.org/faq.htm')
-sound_transit = Agency('40', 'Sound Transit', 'ST', 'sea', 'OneBusAway',
-                       'http://www.soundtransit.org/', 'America/Los_Angeles',
-                       'en', '888-889-6368',
-                       'http://www.soundtransit.org/Fares-and-Passes')
-agencies = {actransit.id: actransit, emery.id: emery, muni.id: muni,
-            city_of_seattle.id: city_of_seattle,
-            community_transit.id: community_transit,
-            seattle_childrens_hospital.id: seattle_childrens_hospital,
-            seattle_streetcar.id: seattle_streetcar,
-            sound_transit.id: sound_transit,
-            metro.id: metro}
-agency_lists = {'sf': (actransit, emery, muni),
-                'sea': (city_of_seattle, community_transit, metro,
-                        seattle_childrens_hospital, seattle_streetcar,
-                        sound_transit)}
+
+#actransit = Agency('actransit', 'AC Transit', 'AC', 'sf', 'NextBus',
+#                   'http://www.actransit.org/', 'America/Los_Angeles', 'en',
+#                   '511',
+#                   'http://www.actransit.org/rider-info/fares-tickets-passes/')
+## bart
+#emery = Agency('emery', 'Emery-Go-Round', 'EM', 'sf', 'NextBus',
+#               'http://www.emerygoround.com/', 'America/Los_Angeles', 'en',
+#               '510-451-3862')
+#muni = Agency('sf-muni', 'San Francisco MUNI', 'MUNI', 'sf', 'NextBus',
+#              'http://www.sfmta.com/', 'America/Los_Angeles', 'en',
+#              '311', 'http://www.sfmta.com/cms/mfares/fareinfo.htm')
+#
+#city_of_seattle = Agency('23', 'City of Seattle', 'CoS', 'sea', 'OneBusAway',
+#                         'http://www.seattle.gov/transportation/',
+#                         'America/Los_Angeles', 'en', '206-684-7623')
+#community_transit = Agency('29', 'Community Transit', 'CT', 'sea',
+#                           'OneBusAway', 'http://www.communitytransit.org/',
+#                           'America/Los_Angeles', 'en', '800-562-1379')
+#metro = Agency('1', 'Metro Transit', 'METRO', 'sea', 'OneBusAway',
+#               'http://metro.kingcounty.gov/', 'America/Los_Angeles', 'en',
+#               '206-553-3000',
+#               'http://metro.kingcounty.gov/tops/bus/fare/fare-info.html')
+#seattle_childrens_hospital = Agency('sch', "Seattle Children's Hospital",
+#                                    'SCH', 'sea', 'OneBusAway',
+#                                    'http://seattlechildrens.org/',
+#                                    'America/Los_Angeles', 'en')
+#seattle_streetcar = Agency('seattle-sc', 'Seattle Streetcar', 'SS', 'sea',
+#                           'NextBus', 'http://www.seattlestreetcar.org/',
+#                           'America/Los_Angeles', 'en', '206.553.3000',
+#                           'http://www.seattlestreetcar.org/faq.htm')
+#sound_transit = Agency('40', 'Sound Transit', 'ST', 'sea', 'OneBusAway',
+#                       'http://www.soundtransit.org/', 'America/Los_Angeles',
+#                       'en', '888-889-6368',
+#                       'http://www.soundtransit.org/Fares-and-Passes')
+#agencies = {actransit.id: actransit, emery.id: emery, muni.id: muni,
+#            city_of_seattle.id: city_of_seattle,
+#            community_transit.id: community_transit,
+#            seattle_childrens_hospital.id: seattle_childrens_hospital,
+#            seattle_streetcar.id: seattle_streetcar,
+#            sound_transit.id: sound_transit,
+#            metro.id: metro}
+#agency_lists = {'sf': (actransit, emery, muni),
+#                'sea': (city_of_seattle, community_transit, metro,
+#                        seattle_childrens_hospital, seattle_streetcar,
+#                        sound_transit)}
 
 
 class Route:
@@ -122,9 +130,9 @@ class Route:
                 'short_name': self.short_name, 'long_name': self.long_name,
                 'desc': self.desc, 'type': self.type, 'url': self.url,
                 'color': self.color, 'text_color': self.text_color}
-        if self.stops:
+        if self.stops is not None:
             data['stops'] = self.stops
-        if self.directions:
+        if self.directions is not None:
             data['directions'] = self.directions
         return data
 
@@ -167,7 +175,7 @@ class Stop:
                 'lon': self.lon, 'code': self.code, 'desc': self.desc,
                 'url': self.url, 'type': self.type,
                 'wheelchair_boarding': self.wheelchair_boarding}
-        if self.predictions:
+        if self.predictions is not None:
             data['predictions'] = self.predictions
         return data
 

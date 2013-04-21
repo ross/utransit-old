@@ -3,7 +3,7 @@
 #
 
 from django.contrib import admin
-from www.api.models import Region
+from www.api.models import Agency, Region
 
 
 class RegionAdmin(admin.ModelAdmin):
@@ -13,3 +13,12 @@ class RegionAdmin(admin.ModelAdmin):
 
 
 admin.site.register(Region, RegionAdmin)
+
+
+class AgencyAdmin(admin.ModelAdmin):
+    list_display = ('id', 'name')
+    model = Agency
+    search_fields = ('=region__id', 'id', 'name')
+
+
+admin.site.register(Agency, AgencyAdmin)

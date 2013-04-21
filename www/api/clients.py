@@ -131,10 +131,11 @@ def _nextbus_route_cb(sess, resp, agency_id, route_id):
 def _nextbus_stop_cb(sess, resp, agency_id, route_id, stop_id):
     predictions = []
     preds = parse(resp.content)['body']['predictions']
-    for prediction in preds['direction']['prediction']:
-        predictions.append(Prediction(agency_id, route_id, stop_id,
-                                      prediction['@seconds'],
-                                      prediction['@isDeparture']))
+    if 'direction' in preds:
+        for prediction in preds['direction']['prediction']:
+            predictions.append(Prediction(agency_id, route_id, stop_id,
+                                          prediction['@seconds'],
+                                          prediction['@isDeparture']))
     # TODO: don't have lat/long here :(
     stop = Stop(stop_id, agency_id, preds['@stopTitle'], None, None)
     stop.predictions = predictions

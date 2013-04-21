@@ -2,6 +2,7 @@
 #
 #
 
+from django.db.models.query import QuerySet
 from rest_framework import renderers
 import re
 
@@ -22,7 +23,7 @@ def _camelize(data):
             new_key = re_under_to_camel.sub(_underscore_to_camel, key)
             new_dict[new_key] = _camelize(value)
         return new_dict
-    elif isinstance(data, tuple):
+    elif isinstance(data, (tuple, QuerySet)):
         data = list(data)
         for i in range(len(data)):
             data[i] = _camelize(data[i])
