@@ -106,10 +106,56 @@ class Route:
         self.url = url
         self.color = color
         self.text_color = text_color
+        self.stops = None
+        self.directions = None
+
+    @property
+    def data(self):
+        data = {'id': self.id, 'agency_id': self.agency_id,
+                'short_name': self.short_name, 'long_name': self.long_name,
+                'desc': self.desc, 'type': self.type, 'url': self.url,
+                'color': self.color, 'text_color': self.text_color}
+        if self.stops:
+            data['stops'] = self.stops
+        if self.directions:
+            data['directions'] = self.directions
+        return data
+
+class Direction:
+
+    def __init__(self, id, agency_id, route_id, short_name, stop_ids):
+        self.id = id
+        self.agency_id = agency_id
+        self.route_id = route_id
+        self.short_name = short_name
+        self.stop_ids = stop_ids
 
     @property
     def data(self):
         return {'id': self.id, 'agency_id': self.agency_id,
-                'short_name': self.short_name, 'long_name': self.long_name,
-                'desc': self.desc, 'type': self.type, 'url': self.url,
-                'color': self.color, 'text_color': self.text_color}
+                'route_id': self.route_id, 'short_name': self.short_name,
+                'stop_ids': self.stop_ids}
+
+
+class Stop:
+
+    def __init__(self, id, agency_id, short_name, lat, lon, code=None,
+                 desc=None, url=None, typ=None, wheelchair_boarding=None):
+        self.id = id
+        self.agency_id = agency_id
+        self.short_name = short_name
+        self.lat = lat
+        self.lon = lon
+        self.code = code
+        self.desc = desc
+        self.url = url
+        self.type = typ
+        self.wheelchair_boarding = wheelchair_boarding
+
+    @property
+    def data(self):
+        return {'id': self.id, 'agency_id': self.agency_id,
+                'short_name': self.short_name, 'lat': self.lat,
+                'lon': self.lon, 'code': self.code, 'desc': self.desc,
+                'url': self.url, 'type': self.type,
+                'wheelchair_boarding': self.wheelchair_boarding}

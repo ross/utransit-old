@@ -14,7 +14,9 @@ def _underscore_to_camel(match):
 
 
 def _camelize(data):
-    if isinstance(data, dict):
+    if hasattr(data, 'data'):
+        return _camelize(data.data)
+    elif isinstance(data, dict):
         new_dict = {}
         for key, value in data.items():
             new_key = re_under_to_camel.sub(_underscore_to_camel, key)

@@ -43,32 +43,44 @@ class RegionList(BaseView):
 
 
     def get_data(self, request):
-        return [region.data for region in region_list]
+        return region_list
 
 
 class RegionDetail(BaseView):
     '''
-    A Region's Details
+    A Region's details
     '''
 
-    def get_data(self, request, id):
-        if id not in regions:
+    def get_data(self, request, pk):
+        if pk not in regions:
             raise Http404()
-        data = regions[id].data
-        data['agencies'] = [agency.data for agency in agency_lists[id]]
+        data = regions[pk].data
+        data['agencies'] = agency_lists[pk]
         return data
 
 
 class AgencyDetail(BaseView):
     '''
-    An Agency's Details
+    An Agency's details
     '''
 
-    def get_data(self, request, region, id):
-        if id not in agencies:
+    def get_data(self, request, region, pk):
+        if pk not in agencies:
             raise Http404()
-        agency = agencies[id]
-        future = get_provider(agency.provider).routes(id)
+        agency = agencies[pk]
+        future = get_provider(agency.provider).routes(pk)
         data = agency.data
-        data['routes'] = [route.data for route in future.result().routes]
+        data['routes'] = future.result().routes
         return data
+
+
+class RouteDetail(BaseView):
+    '''
+    A Route's details
+    '''
+
+    def get_data(self, request, region, agency, pk):
+        if agency not in agencies:
+            raise Http404()
+        future = get_provider(agencies[agency].provider).stops(agency, pk)
+        return future.result().route
