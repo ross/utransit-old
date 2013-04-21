@@ -2,6 +2,8 @@
 #
 #
 
+from collections import OrderedDict
+from django.core.cache import cache
 from requests_futures.sessions import FuturesSession
 from www.api.models import Direction, Prediction, Route, Stop
 from xmltodict import parse
@@ -174,9 +176,118 @@ class NextBus:
                            background_callback=cb_wrapper)
 
 
+def _bart_route(pk, route):
+    return Route(pk, 'bart', route['name'], None, None, 1, None,
+                 route['color'], None)
+
+
+def _bart_agency_cb(sess, resp, agency_id):
+    # preserve BART's order
+    routes = OrderedDict()
+    for route in parse(resp.content)['root']['routes']['route']:
+        color = route['color']
+        pk = '{0}-{1}'.format(route['number'], color[1:])
+        if color not in routes:
+            routes[color] = _bart_route(pk, route)
+    resp.routes = list(routes.values())
+
+
+def _bart_all_stops(sess, resp):
+    data = parse(resp.content)
+    stops = {}
+    for station in data['root']['stations']['station']:
+        stop = Stop(station['abbr'], 'bart', station['name'],
+                    station['gtfs_latitude'], station['gtfs_longitude'],
+                    None, None, None, 1, None)
+        stops[stop.id] = stop
+    resp.stops = stops
+
+
+class BartAllStops:
+
+    def __init__(self):
+        self._stops = cache.get('bart-all-stops')
+        self._future = None
+        if not self._stops:
+            url = '{0}{1}'.format(Bart.url, 'stn.aspx')
+            params = dict(Bart.params)
+            params['cmd'] = 'stns'
+            self._future = session.get(url, params=params,
+                                       background_callback=_bart_all_stops)
+
+    def get(self):
+        if self._future:
+            resp = self._future.result()
+            from pprint import pprint
+            self._stops = resp.stops
+            cache.set('bart-all-stops', self._stops, 60 * 60 * 24)
+        return self._stops
+
+
+def _bart_route_cb(sess, resp, agency_id, route_id, all_stops):
+    # wait for stop data, if we don't already have it
+    all_stops = all_stops.get()
+    data = parse(resp.content)['root']['routes']['route']
+    route = _bart_route(route_id, data)
+    stops = {}
+    directions = []
+    # TODO: what about the other direction
+    # find all of the stops we're working with
+    abbrs = data['config']['station']
+    for station in abbrs:
+        stop = all_stops[station]
+        stops[stop.id] = stop
+    route.directions = [Direction(route_id.split('-')[0], agency_id, route_id,
+                                  route.short_name, abbrs)]
+    route.stops = stops
+    resp.route = route
+
+
+class Bart:
+    url = 'http://api.bart.gov/api/';
+    params = {'key': 'MW9S-E7SL-26DU-VV8V'};
+
+    def routes(self, agency_id):
+        url = '{0}{1}'.format(self.url, 'route.aspx')
+        params = dict(self.params)
+        params['cmd'] = 'routes'
+
+        def cb_wrapper(s, r):
+            _bart_agency_cb(s, r, agency_id)
+
+        return session.get(url, params=params,
+                           background_callback=cb_wrapper)
+
+    def stops(self, agency_id, route_id):
+        all_stops = BartAllStops()
+
+        url = '{0}{1}'.format(self.url, 'route.aspx')
+        params = dict(self.params)
+        params['cmd'] = 'routeinfo'
+        params['route'] = route_id.split('-')[0]
+
+        def cb_wrapper(s, r):
+            _bart_route_cb(s, r, agency_id, route_id, all_stops)
+
+        return session.get(url, params=params,
+                           background_callback=cb_wrapper)
+
+    def stop(self, agency_id, route_id, stop_id):
+        params = {'command': 'predictions', 'a': agency_id, 'r': route_id,
+                  's': stop_id}
+
+        def cb_wrapper(s, r):
+            _nextbus_stop_cb(s, r, agency_id, route_id, stop_id)
+
+        return session.get(self.url, params=params,
+                           background_callback=cb_wrapper)
+
+
 def get_provider(id):
     if id == 'OneBusAway':
         return OneBusAway()
     elif id == 'NextBus':
         return NextBus()
+    elif id == 'Bart':
+        return Bart()
     raise Exception('unknown provider')

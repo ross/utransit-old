@@ -24,7 +24,8 @@ class Region(models.Model):
         ordering = ('name',)
 
 
-_provider_choices = (('NextBus', 'NextBus'), ('OneBusAway', 'OneBusAway'))
+_provider_choices = (('NextBus', 'NextBus'), ('OneBusAway', 'OneBusAway'),
+                     ('Bart', 'Bart'))
 
 
 # TODO: create a task that scans proviers for new agencies and adds them

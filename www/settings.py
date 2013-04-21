@@ -20,6 +20,13 @@ DATABASES = {
     }
 }
 
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'unique-snowflake'
+    }
+}
+
 ALLOWED_HOSTS = []
 TIME_ZONE = 'America/Los_Angeles'
 LANGUAGE_CODE = 'en-us'
