@@ -3,3 +3,4 @@ django-filter
 djangorestframework
 Markdown
 requests-futures
+xmltodict

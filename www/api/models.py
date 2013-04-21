@@ -24,7 +24,7 @@ region_list = (sf, sea)
 
 
 class Agency:
-    
+
     def __init__(self, id, name, sign, region_id, provider, url, timezone,
                  lang=None, phone=None, fare_url=None):
         self.id = id
@@ -47,20 +47,54 @@ class Agency:
 
 
 actransit = Agency('actransit', 'AC Transit', 'AC', 'sf', 'NextBus',
-                   'http://www.actransit.org/', 'America/Los_Angeles', 'EN',
+                   'http://www.actransit.org/', 'America/Los_Angeles', 'en',
                    '511',
                    'http://www.actransit.org/rider-info/fares-tickets-passes/')
+# bart
+emery = Agency('emery', 'Emery-Go-Round', 'EM', 'sf', 'NextBus',
+               'http://www.emerygoround.com/', 'America/Los_Angeles', 'en',
+               '510-451-3862')
+muni = Agency('sf-muni', 'San Francisco MUNI', 'MUNI', 'sf', 'NextBus',
+              'http://www.sfmta.com/', 'America/Los_Angeles', 'en',
+              '311', 'http://www.sfmta.com/cms/mfares/fareinfo.htm')
+
+city_of_seattle = Agency('23', 'City of Seattle', 'CoS', 'sea', 'OneBusAway',
+                         'http://www.seattle.gov/transportation/',
+                         'America/Los_Angeles', 'en', '206-684-7623')
+community_transit = Agency('29', 'Community Transit', 'CT', 'sea',
+                           'OneBusAway', 'http://www.communitytransit.org/',
+                           'America/Los_Angeles', 'en', '800-562-1379')
 metro = Agency('1', 'Metro Transit', 'METRO', 'sea', 'OneBusAway',
-               'http://metro.kingcounty.gov/', 'America/Los_Angeles', 'EN',
+               'http://metro.kingcounty.gov/', 'America/Los_Angeles', 'en',
                '206-553-3000',
                'http://metro.kingcounty.gov/tops/bus/fare/fare-info.html')
-agencies = {actransit.id: actransit, metro.id: metro}
-agency_lists = {'sf': (actransit,),
-                'sea': (metro,)}
+seattle_childrens_hospital = Agency('sch', "Seattle Children's Hospital",
+                                    'SCH', 'sea', 'OneBusAway',
+                                    'http://seattlechildrens.org/',
+                                    'America/Los_Angeles', 'en')
+seattle_streetcar = Agency('seattle-sc', 'Seattle Streetcar', 'SS', 'sea',
+                           'NextBus', 'http://www.seattlestreetcar.org/',
+                           'America/Los_Angeles', 'en', '206.553.3000',
+                           'http://www.seattlestreetcar.org/faq.htm')
+sound_transit = Agency('40', 'Sound Transit', 'ST', 'sea', 'OneBusAway',
+                       'http://www.soundtransit.org/', 'America/Los_Angeles',
+                       'en', '888-889-6368',
+                       'http://www.soundtransit.org/Fares-and-Passes')
+agencies = {actransit.id: actransit, emery.id: emery, muni.id: muni,
+            city_of_seattle.id: city_of_seattle,
+            community_transit.id: community_transit,
+            seattle_childrens_hospital.id: seattle_childrens_hospital,
+            seattle_streetcar.id: seattle_streetcar,
+            sound_transit.id: sound_transit,
+            metro.id: metro}
+agency_lists = {'sf': (actransit, emery, muni),
+                'sea': (city_of_seattle, community_transit, metro,
+                        seattle_childrens_hospital, seattle_streetcar,
+                        sound_transit)}
 
 
 class Route:
-    
+
     def __init__(self, id, agency_id, short_name, long_name, desc, typ,
                  url=None, color=None, text_color=None):
         self.id = id

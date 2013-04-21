@@ -19,8 +19,8 @@ urlpatterns += patterns('www.api.views',
                         url(r'^api/$', ApiRoot.as_view(), name='api_root'),
                         url(r'^api/regions/$', RegionList.as_view(),
                             name='regions-list'),
-                        url(r'^api/regions/(?P<id>\w+)/$',
+                        url(r'^api/regions/(?P<id>[\w-]+)/$',
                             RegionDetail.as_view(), name='region-detail'),
-                        url(r'^api/regions/(?P<region>\w+)'
-                            r'/agencies/(?P<id>\w+)/$',
+                        url(r'^api/regions/(?P<region>[\w-]+)'
+                            r'/agencies/(?P<id>[\w-]+)/$',
                             AgencyDetail.as_view(), name='agency-detail'))
