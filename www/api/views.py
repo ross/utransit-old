@@ -13,15 +13,17 @@ from www.api.clients import get_provider
 from www.api.models import Agency, Region
 from www.api.renderers import JSONRenderer
 
-
-class BaseView(APIView):
-    renderer_classes = (JSONRenderer, BrowsableAPIRenderer)
+class NoParsesMixin:
 
     def metadata(self, request):
-        data = super(BaseView, self).metadata(request)
+        data = super(NoParsesMixin, self).metadata(request)
         # remove parses since we're read-only
         del data['parses']
         return data
+
+
+class BaseView(NoParsesMixin, APIView):
+    renderer_classes = (JSONRenderer, BrowsableAPIRenderer)
 
     def get(self, request, *args, **kwargs):
         return Response(self.get_data(request, *args, **kwargs))
@@ -37,11 +39,12 @@ class RegionSerializer(serializers.ModelSerializer):
         model = Region
 
 
-class RegionList(generics.ListAPIView):
+class RegionList(NoParsesMixin, generics.ListAPIView):
     '''
     A list of Regions
     '''
     model = Region
+    renderer_classes = (JSONRenderer, BrowsableAPIRenderer)
     serializer_class = RegionSerializer
 
 
@@ -58,11 +61,12 @@ class RegionDetailSerializer(serializers.ModelSerializer):
         model = Region
 
 
-class RegionDetail(generics.RetrieveAPIView):
+class RegionDetail(NoParsesMixin, generics.RetrieveAPIView):
     '''
     A Region's details
     '''
     model = Region
+    renderer_classes = (JSONRenderer, BrowsableAPIRenderer)
     serializer_class = RegionDetailSerializer
 
 
