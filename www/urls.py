@@ -1,20 +1,13 @@
 from django.conf.urls import patterns, include, url
+from django.contrib import admin
 from django.views.decorators.cache import cache_page
 from www.api.views import AgencyDetail, RegionDetail, RegionList, \
     RouteDetail, RouteStopDetail
 
-# admin.autodiscover()
+admin.autodiscover()
 
 urlpatterns = patterns('',
-    # Examples:
-    # url(r'^$', 'www.views.home', name='home'),
-    # url(r'^www/', include('www.foo.urls')),
-
-    # Uncomment the admin/doc line below to enable admin documentation:
-    # url(r'^admin/doc/', include('django.contrib.admindocs.urls')),
-
-    # Uncomment the next line to enable the admin:
-    # url(r'^admin/', include(admin.site.urls)),
+    url(r'^adm/', include(admin.site.urls)),
 )
 
 urlpatterns += patterns('www.api.views',

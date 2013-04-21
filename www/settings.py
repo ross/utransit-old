@@ -1,6 +1,5 @@
 #
 #
-#
 
 from os.path import dirname, join
 
@@ -63,7 +62,7 @@ INSTALLED_APPS = (
     'django.contrib.sites',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    # 'django.contrib.admin',
+    'django.contrib.admin',
     # third party apps
     'debug_toolbar',
     'rest_framework',

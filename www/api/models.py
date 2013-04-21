@@ -3,24 +3,30 @@
 #
 
 from collections import OrderedDict
+from django.db import models
 
 
-class Region:
-
-    def __init__(self, id, name, sign):
-        self.id = id
-        self.name = name
-        self.sign = sign
+class Region(models.Model):
+    id = models.CharField(max_length=32, primary_key=True)
+    name = models.CharField(max_length=128)
+    sign = models.CharField(max_length=8)
+    agencies = None
 
     @property
     def data(self):
-        return {'id': self.id, 'name': self.name, 'sign': self.sign}
+        data = {'id': self.id, 'name': self.name, 'sign': self.sign}
+        if self.agencies:
+            data['agencies'] = self.agencies
+        return data
+
+    class Meta:
+        ordering = ('name',)
 
 
-sf = Region('sf', 'San Francisco Bay Area', 'SF')
-sea = Region('sea', 'Seattle Area', 'SEA')
-regions = {sf.id: sf, sea.id: sea}
-region_list = (sf, sea)
+#sf = Region('sf', 'San Francisco Bay Area', 'SF')
+#sea = Region('sea', 'Seattle Area', 'SEA')
+#regions = {sf.id: sf, sea.id: sea}
+#region_list = (sf, sea)
 
 
 class Agency:

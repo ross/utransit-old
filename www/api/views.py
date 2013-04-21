@@ -3,12 +3,13 @@
 #
 
 from django.http import Http404, HttpResponseRedirect
+from django.shortcuts import get_object_or_404
 from rest_framework.response import Response
 from rest_framework.reverse import reverse
 from rest_framework.views import APIView
 from rest_framework.renderers import BrowsableAPIRenderer
 from www.api.clients import get_provider
-from www.api.models import agency_lists, agencies, region_list, regions
+from www.api.models import Region, agency_lists, agencies
 from www.api.renderers import JSONRenderer
 
 
@@ -36,7 +37,7 @@ class RegionList(BaseView):
 
 
     def get_data(self, request):
-        return region_list
+        return [region.data for region in Region.objects.all()]
 
 
 class RegionDetail(BaseView):
@@ -45,11 +46,9 @@ class RegionDetail(BaseView):
     '''
 
     def get_data(self, request, pk):
-        if pk not in regions:
-            raise Http404()
-        data = regions[pk].data
-        data['agencies'] = agency_lists[pk]
-        return data
+        region = get_object_or_404(Region, pk=pk)
+        region.agencies = agency_lists[pk]
+        return region.data
 
 
 class AgencyDetail(BaseView):
