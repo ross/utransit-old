@@ -1,6 +1,6 @@
 from django.conf.urls import patterns, include, url
-from www.api.views import AgencyDetail, ApiRoot, RegionDetail, RegionList, \
-    RouteDetail
+from www.api.views import AgencyDetail, RegionDetail, RegionList, \
+    RouteDetail, RouteStopDetail
 
 # admin.autodiscover()
 
@@ -17,7 +17,7 @@ urlpatterns = patterns('',
 )
 
 urlpatterns += patterns('www.api.views',
-                        url(r'^api/$', ApiRoot.as_view(), name='api_root'),
+                        url(r'^api/$', 'api_root', name='api_root'),
                         url(r'^api/regions/$', RegionList.as_view(),
                             name='regions-list'),
                         url(r'^api/regions/(?P<pk>[\w-]+)/$',
@@ -28,4 +28,9 @@ urlpatterns += patterns('www.api.views',
                         url(r'^api/regions/(?P<region>[\w-]+)'
                             r'/agencies/(?P<agency>[\w-]+)'
                             r'/routes/(?P<pk>[\w-]+)/$',
-                            RouteDetail.as_view(), name='route-detail'))
+                            RouteDetail.as_view(), name='route-detail'),
+                        url(r'^api/regions/(?P<region>[\w-]+)'
+                            r'/agencies/(?P<agency>[\w-]+)'
+                            r'/routes/(?P<route>[\w-]+)'
+                            r'/stops/(?P<pk>[\w-]+)/$',
+                            RouteStopDetail.as_view(), name='stop-detail'))

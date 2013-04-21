@@ -95,6 +95,7 @@ agency_lists = {'sf': (actransit, emery, muni),
 
 class Route:
 
+    # TODO: add region_id through all of these
     def __init__(self, id, agency_id, short_name, long_name, desc, typ,
                  url=None, color=None, text_color=None):
         self.id = id
@@ -151,11 +152,32 @@ class Stop:
         self.url = url
         self.type = typ
         self.wheelchair_boarding = wheelchair_boarding
+        self.predictions = None
 
     @property
     def data(self):
-        return {'id': self.id, 'agency_id': self.agency_id,
+        data = {'id': self.id, 'agency_id': self.agency_id,
                 'short_name': self.short_name, 'lat': self.lat,
                 'lon': self.lon, 'code': self.code, 'desc': self.desc,
                 'url': self.url, 'type': self.type,
                 'wheelchair_boarding': self.wheelchair_boarding}
+        if self.predictions:
+            data['predictions'] = self.predictions
+        return data
+
+
+class Prediction:
+
+    def __init__(self, id, agency_id, route_id, stop_id, away, departure=None):
+        self.id = id
+        self.agency_id = agency_id
+        self.route_id = route_id
+        self.stop_id = stop_id
+        self.away = away
+        self.departure = departure
+
+    @property
+    def data(self):
+        return {'id': self.id, 'agency_id': self.agency_id, 'route_id':
+                self.route_id, 'stop_id': self.stop_id, 'away': self.away,
+                'departure': self.departure}

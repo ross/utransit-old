@@ -2,7 +2,7 @@
 #
 #
 
-from django.http import Http404
+from django.http import Http404, HttpResponseRedirect
 from rest_framework.response import Response
 from rest_framework.reverse import reverse
 from rest_framework.views import APIView
@@ -25,15 +25,8 @@ class BaseView(APIView):
         return Response(self.get_data(request, *args, **kwargs))
 
 
-class ApiRoot(BaseView):
-    '''
-    The entry endpoint of our API
-    '''
-
-    def get(self, request, *args, **kwargs):
-        return Response({
-            'regions': reverse('regions-list', request=request),
-        })
+def api_root(request):
+    return HttpResponseRedirect(reverse('regions-list', request=request))
 
 
 class RegionList(BaseView):
@@ -84,3 +77,16 @@ class RouteDetail(BaseView):
             raise Http404()
         future = get_provider(agencies[agency].provider).stops(agency, pk)
         return future.result().route
+
+
+class RouteStopDetail(BaseView):
+    '''
+    A Stop's details for a specific Route
+    '''
+
+    def get_data(self, request, region, agency, route, pk):
+        if agency not in agencies:
+            raise Http404()
+        future = get_provider(agencies[agency].provider).stop(agency, route,
+                                                              pk)
+        return future.result().stop

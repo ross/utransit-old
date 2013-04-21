@@ -3,7 +3,7 @@
 #
 
 from requests_futures.sessions import FuturesSession
-from www.api.models import Direction, Route, Stop
+from www.api.models import Direction, Prediction, Route, Stop
 from xmltodict import parse
 
 
@@ -44,7 +44,7 @@ def _nextbus_route_cb(sess, resp, agency_id):
     resp.routes = routes
 
 
-def _nextbus_stop_cb(sess, resp, agency_id, route_id):
+def _nextbus_route_cb(sess, resp, agency_id, route_id):
     data = parse(resp.content)['body']['route']
     stops = {}
     for stop in data['stop']:
@@ -67,6 +67,19 @@ def _nextbus_stop_cb(sess, resp, agency_id, route_id):
     resp.route = route
 
 
+def _nextbus_stop_cb(sess, resp, agency_id, route_id, stop_id):
+    predictions = []
+    preds = parse(resp.content)['body']['predictions']
+    for prediction in preds['direction']['prediction']:
+        predictions.append(Prediction('42', agency_id, route_id, stop_id,
+                                      prediction['@seconds'],
+                                      prediction['@isDeparture']))
+    # TODO: don't have lat/long here :(
+    stop = Stop(preds['@stopTag'], agency_id, preds['@stopTitle'], None, None)
+    stop.predictions = predictions
+    resp.stop = stop
+
+
 class NextBus:
     url = 'http://webservices.nextbus.com/service/publicXMLFeed'
 
@@ -83,7 +96,17 @@ class NextBus:
         params = {'command': 'routeConfig', 'a': agency_id, 'r': route_id}
 
         def cb_wrapper(s, r):
-            _nextbus_stop_cb(s, r, agency_id, route_id)
+            _nextbus_route_cb(s, r, agency_id, route_id)
+
+        return session.get(self.url, params=params,
+                           background_callback=cb_wrapper)
+
+    def stop(self, agency_id, route_id, stop_id):
+        params = {'command': 'predictions', 'a': agency_id, 'r': route_id,
+                  's': stop_id}
+
+        def cb_wrapper(s, r):
+            _nextbus_stop_cb(s, r, agency_id, route_id, stop_id)
 
         return session.get(self.url, params=params,
                            background_callback=cb_wrapper)
