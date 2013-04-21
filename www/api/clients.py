@@ -9,32 +9,93 @@ from xmltodict import parse
 
 session = FuturesSession()
 
+def _onebus_route(data):
+    long_name = data['longName'] if data['longName'] else None
+    color = data['color'] if data['color'] else None
+    text_color = data['textColor'] if data['textColor'] else None
+    return Route(data['id'], data['agencyId'], data['shortName'], long_name,
+                 data['description'], data['type'], data['url'],
+                 color, text_color)
 
-def _onebus_route_cb(sess, resp):
+
+def _onebus_agency_cb(sess, resp):
     routes = []
     for route in resp.json()['data']['list']:
-        long_name = route['longName'] if route['longName'] else None
-        color = route['color'] if route['color'] else None
-        text_color = route['textColor'] if route['textColor'] else None
-        routes.append(Route(route['id'], route['agencyId'],
-                            route['shortName'], long_name,
-                            route['description'], route['type'], route['url'],
-                            color, text_color))
-
+        routes.append(_onebus_route(route))
     resp.routes = routes
 
 
+def _onebus_route_cb(sess, resp, agency_id, route_id):
+    data = resp.json()['data']
+    stops = {}
+    for stop in data['references']['stops']:
+        stop = Stop(stop['id'], agency_id, stop['name'], stop['lat'],
+                    stop['lon'], stop['code'], None, None,
+                    stop['locationType'], stop['wheelchairBoarding'])
+        stops[stop.id] = stop
+    directions = []
+    for stop_groupings in data['entry']['stopGroupings']:
+        for stop_group in stop_groupings['stopGroups']:
+            directions.append(Direction(stop_group['id'], agency_id, route_id,
+                                        stop_group['name']['name'],
+                                        stop_group['stopIds']))
+    for route in data['references']['routes']:
+        if route['id'] == route_id:
+            route = _onebus_route(route)
+            break
+    route.directions = directions
+    route.stops = stops
+    resp.route = route
+
+
+def _onebus_stop_cb(sess, resp, agency_id, route_id, stop_id):
+    data = resp.json()
+    current_time = data['currentTime']
+    data = data['data']
+    predictions = []
+    for arrival in data['arrivalsAndDepartures']:
+        away = (arrival['predictedArrivalTime'] - current_time) / 1000.0
+        if arrival['routeId'] == route_id and away >= 0:
+            predictions.append(Prediction(agency_id, route_id, stop_id, away))
+    stop = data['stop']
+    stop = Stop(stop_id, agency_id, stop['name'], stop['lat'], stop['lon'])
+    stop.predictions = predictions
+    resp.stop = stop
+
+
 class OneBusAway:
+    params = {'key': 'e5ca6a2f-d074-4657-879e-6b572b3364bd'}
 
     def routes(self, agency_id):
         url = 'http://api.onebusaway.org/api/where/routes-for-agency/' \
             '{0}.json'.format(agency_id)
-        params = {'key': 'e5ca6a2f-d074-4657-879e-6b572b3364bd'}
+        return session.get(url, params=self.params,
+                           background_callback=_onebus_agency_cb)
+
+    def stops(self, agency_id, route_id):
+        url = 'http://api.onebusaway.org/api/where/stops-for-route/' \
+            '{0}.json'.format(route_id)
+        params = dict(self.params)
+        params['version'] = 2
+
+        def cb_wrapper(s, r):
+            _onebus_route_cb(s, r, agency_id, route_id)
+
         return session.get(url, params=params,
-                           background_callback=_onebus_route_cb)
+                           background_callback=cb_wrapper)
+
+    def stop(self, agency_id, route_id, stop_id):
+        url = 'http://api.onebusaway.org/api/where/' \
+            'arrivals-and-departures-for-stop/{0}.json'.format(stop_id)
+
+        def cb_wrapper(s, r):
+            _onebus_stop_cb(s, r, agency_id, route_id, stop_id)
+
+        return session.get(url, params=self.params,
+                           background_callback=cb_wrapper)
 
 
-def _nextbus_route_cb(sess, resp, agency_id):
+def _nextbus_agency_cb(sess, resp, agency_id):
     routes = []
     for route in parse(resp.content)['body']['route']:
         # TODO: other data, esp url, probably require pre-walk and store/cache,
@@ -71,11 +132,11 @@ def _nextbus_stop_cb(sess, resp, agency_id, route_id, stop_id):
     predictions = []
     preds = parse(resp.content)['body']['predictions']
     for prediction in preds['direction']['prediction']:
-        predictions.append(Prediction('42', agency_id, route_id, stop_id,
+        predictions.append(Prediction(agency_id, route_id, stop_id,
                                       prediction['@seconds'],
                                       prediction['@isDeparture']))
     # TODO: don't have lat/long here :(
-    stop = Stop(preds['@stopTag'], agency_id, preds['@stopTitle'], None, None)
+    stop = Stop(stop_id, agency_id, preds['@stopTitle'], None, None)
     stop.predictions = predictions
     resp.stop = stop
 
@@ -87,7 +148,7 @@ class NextBus:
         params = {'command': 'routeList', 'a': agency_id}
 
         def cb_wrapper(s, r):
-            _nextbus_route_cb(s, r, agency_id)
+            _nextbus_agency_cb(s, r, agency_id)
 
         return session.get(self.url, params=params,
                            background_callback=cb_wrapper)

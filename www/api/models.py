@@ -168,8 +168,7 @@ class Stop:
 
 class Prediction:
 
-    def __init__(self, id, agency_id, route_id, stop_id, away, departure=None):
-        self.id = id
+    def __init__(self, agency_id, route_id, stop_id, away, departure=None):
         self.agency_id = agency_id
         self.route_id = route_id
         self.stop_id = stop_id
@@ -178,6 +177,6 @@ class Prediction:
 
     @property
     def data(self):
-        return {'id': self.id, 'agency_id': self.agency_id, 'route_id':
-                self.route_id, 'stop_id': self.stop_id, 'away': self.away,
+        return {'agency_id': self.agency_id, 'route_id': self.route_id,
+                'stop_id': self.stop_id, 'away': self.away,
                 'departure': self.departure}
