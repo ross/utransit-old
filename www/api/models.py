@@ -27,15 +27,16 @@ class Region(models.Model):
 _provider_choices = (('NextBus', 'NextBus'), ('OneBusAway', 'OneBusAway'))
 
 
+# TODO: create a task that scans proviers for new agencies and adds them
+#       that'll allow listing of unattached stuff so that we can add it to
+#       a region
 class Agency(models.Model):
-    # TODO: create a task that scans proviers for new agencies and adds them
-    #       that'll allow listing of unattached stuff so that we can add it to
-    #       a region
+    region = models.ForeignKey(Region, blank=True, null=True,
+                               related_name='agencies')
+    # TODO: ids are only unique within regions...
     id = models.CharField(max_length=32, primary_key=True)
     name = models.CharField(max_length=128)
     sign = models.CharField(max_length=8)
-    region = models.ForeignKey(Region, blank=True, null=True,
-                               related_name='agencies')
     url = models.URLField(max_length=256)
     # TODO: choices to limit to valid timezone names
     timezone = models.CharField(max_length=32)
@@ -58,53 +59,6 @@ class Agency(models.Model):
     class Meta:
         ordering = ('name',)
         verbose_name_plural = 'agencies'
-
-
-#actransit = Agency('actransit', 'AC Transit', 'AC', 'sf', 'NextBus',
-#                   'http://www.actransit.org/', 'America/Los_Angeles', 'en',
-#                   '511',
-#                   'http://www.actransit.org/rider-info/fares-tickets-passes/')
-## bart
-#emery = Agency('emery', 'Emery-Go-Round', 'EM', 'sf', 'NextBus',
-#               'http://www.emerygoround.com/', 'America/Los_Angeles', 'en',
-#               '510-451-3862')
-#muni = Agency('sf-muni', 'San Francisco MUNI', 'MUNI', 'sf', 'NextBus',
-#              'http://www.sfmta.com/', 'America/Los_Angeles', 'en',
-#              '311', 'http://www.sfmta.com/cms/mfares/fareinfo.htm')
-#
-#city_of_seattle = Agency('23', 'City of Seattle', 'CoS', 'sea', 'OneBusAway',
-#                         'http://www.seattle.gov/transportation/',
-#                         'America/Los_Angeles', 'en', '206-684-7623')
-#community_transit = Agency('29', 'Community Transit', 'CT', 'sea',
-#                           'OneBusAway', 'http://www.communitytransit.org/',
-#                           'America/Los_Angeles', 'en', '800-562-1379')
-#metro = Agency('1', 'Metro Transit', 'METRO', 'sea', 'OneBusAway',
-#               'http://metro.kingcounty.gov/', 'America/Los_Angeles', 'en',
-#               '206-553-3000',
-#               'http://metro.kingcounty.gov/tops/bus/fare/fare-info.html')
-#seattle_childrens_hospital = Agency('sch', "Seattle Children's Hospital",
-#                                    'SCH', 'sea', 'OneBusAway',
-#                                    'http://seattlechildrens.org/',
-#                                    'America/Los_Angeles', 'en')
-#seattle_streetcar = Agency('seattle-sc', 'Seattle Streetcar', 'SS', 'sea',
-#                           'NextBus', 'http://www.seattlestreetcar.org/',
-#                           'America/Los_Angeles', 'en', '206.553.3000',
-#                           'http://www.seattlestreetcar.org/faq.htm')
-#sound_transit = Agency('40', 'Sound Transit', 'ST', 'sea', 'OneBusAway',
-#                       'http://www.soundtransit.org/', 'America/Los_Angeles',
-#                       'en', '888-889-6368',
-#                       'http://www.soundtransit.org/Fares-and-Passes')
-#agencies = {actransit.id: actransit, emery.id: emery, muni.id: muni,
-#            city_of_seattle.id: city_of_seattle,
-#            community_transit.id: community_transit,
-#            seattle_childrens_hospital.id: seattle_childrens_hospital,
-#            seattle_streetcar.id: seattle_streetcar,
-#            sound_transit.id: sound_transit,
-#            metro.id: metro}
-#agency_lists = {'sf': (actransit, emery, muni),
-#                'sea': (city_of_seattle, community_transit, metro,
-#                        seattle_childrens_hospital, seattle_streetcar,
-#                        sound_transit)}
 
 
 class Route:
