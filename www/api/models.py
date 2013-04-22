@@ -123,6 +123,13 @@ class Stop:
         self.wheelchair_boarding = wheelchair_boarding
         self.predictions = None
 
+    def clone(self, id):
+        return Stop(id=id, agency_id=self.agency_id,
+                    short_name=self.short_name, lat=self.lat, lon=self.lon,
+                    code=self.code, desc=self.desc, url=self.url,
+                    typ=self.type,
+                    wheelchair_boarding=self.wheelchair_boarding)
+
     @property
     def data(self):
         data = {'id': self.id, 'agency_id': self.agency_id,

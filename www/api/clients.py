@@ -189,6 +189,9 @@ def _bart_agency_cb(sess, resp, agency_id):
         pk = '{0}-{1}'.format(route['number'], color[1:])
         if color not in routes:
             routes[color] = _bart_route(pk, route)
+        else:
+            routes[color].id = '{0}-{1}'.format(routes[color].id,
+                                                route['number'])
     resp.routes = list(routes.values())
 
 
@@ -204,6 +207,10 @@ def _bart_all_stops(sess, resp):
 
 
 class BartAllStops:
+    '''
+    Returns the list of all bart stops, cached if possible, in background if
+    not.
+    '''
 
     def __init__(self):
         self._stops = cache.get('bart-all-stops')
@@ -218,29 +225,81 @@ class BartAllStops:
     def get(self):
         if self._future:
             resp = self._future.result()
-            from pprint import pprint
             self._stops = resp.stops
             cache.set('bart-all-stops', self._stops, 60 * 60 * 24)
         return self._stops
 
 
-def _bart_route_cb(sess, resp, agency_id, route_id, all_stops):
-    # wait for stop data, if we don't already have it
-    all_stops = all_stops.get()
-    data = parse(resp.content)['root']['routes']['route']
-    route = _bart_route(route_id, data)
-    stops = {}
-    directions = []
-    # TODO: what about the other direction
-    # find all of the stops we're working with
-    abbrs = data['config']['station']
-    for station in abbrs:
-        stop = all_stops[station]
-        stops[stop.id] = stop
-    route.directions = [Direction(route_id.split('-')[0], agency_id, route_id,
-                                  route.short_name, abbrs)]
-    route.stops = stops
-    resp.route = route
+class BartStops:
+
+    def __init__(self, route_id):
+        self.route = None
+        self.stops = {}
+        self.directions = []
+
+        self._all_stops = BartAllStops()
+
+        def routeinfo_cb(sess, resp):
+            data = parse(resp.content)['root']['routes']['route']
+            if self.route is None:
+                self.route = _bart_route(route_id, data)
+            abbrs = data['config']['station']
+            # will block if we don't already have an answer
+            all_stops = self._all_stops.get()
+            stops = []
+            first = abbrs.pop(0)
+            for abbr in abbrs:
+                # copy over the relevant stations
+                stop = all_stops[abbr]
+                abbr = '{0}-{1}'.format(abbr, first)
+                self.stops[abbr] = stop.clone(abbr)
+                stops.append(abbr)
+            direction = Direction(data['number'], 'bart', route_id,
+                                  data['name'], stops)
+            self.directions.append(direction)
+
+        a, _, b = route_id.split('-')
+        url = '{0}{1}'.format(Bart.url, 'route.aspx')
+        params = dict(Bart.params)
+        params['cmd'] = 'routeinfo'
+        params['route'] = a
+        self._future_a = session.get(url, params=params,
+                                     background_callback=routeinfo_cb)
+        params = dict(Bart.params)
+        params['cmd'] = 'routeinfo'
+        params['route'] = b
+        self._future_b = session.get(url, params=params,
+                                     background_callback=routeinfo_cb)
+
+    def result(self):
+        # doing these just to wait on them (work done in callbacks)
+        self._future_a.result()
+        self._future_b.result()
+
+        class DummyFuture:
+
+            def __init__(self, rt):
+                self.route = rt
+
+        route = self.route
+        route.stops = self.stops
+        route.directions = self.directions
+
+        return DummyFuture(route)
+
+
+def _bart_stop_cb(sess, resp, agency_id, route_id, stop_id, all_stops):
+    abbr, dest = stop_id.split('-')
+    resp.stop = all_stops[abbr].clone(stop_id)
+    for direction in parse(resp.content)['root']['station']['etd']:
+        if direction['abbreviation'] == dest:
+            predictions = []
+            for prediction in direction['estimate']:
+                away = int(prediction['minutes']) * 60
+                predictions.append(Prediction(agency_id, route_id, stop_id,
+                                              away))
+            resp.stop.predictions = predictions
+            break
 
 
 class Bart:
@@ -259,27 +318,20 @@ class Bart:
                            background_callback=cb_wrapper)
 
     def stops(self, agency_id, route_id):
-        all_stops = BartAllStops()
-
-        url = '{0}{1}'.format(self.url, 'route.aspx')
-        params = dict(self.params)
-        params['cmd'] = 'routeinfo'
-        params['route'] = route_id.split('-')[0]
-
-        def cb_wrapper(s, r):
-            _bart_route_cb(s, r, agency_id, route_id, all_stops)
-
-        return session.get(url, params=params,
-                           background_callback=cb_wrapper)
+        return BartStops(route_id)
 
     def stop(self, agency_id, route_id, stop_id):
-        params = {'command': 'predictions', 'a': agency_id, 'r': route_id,
-                  's': stop_id}
+        all_stops = BartAllStops().get()
+
+        url = '{0}{1}'.format(self.url, 'etd.aspx')
+        params = dict(self.params)
+        params['cmd'] = 'etd'
+        params['orig'] = stop_id.split('-')[0]
 
         def cb_wrapper(s, r):
-            _nextbus_stop_cb(s, r, agency_id, route_id, stop_id)
+            _bart_stop_cb(s, r, agency_id, route_id, stop_id, all_stops)
 
-        return session.get(self.url, params=params,
+        return session.get(url, params=params,
                            background_callback=cb_wrapper)
 
 
