@@ -2,7 +2,9 @@
 #
 #
 
+from django import forms
 from django.contrib import admin
+from rest_framework.authtoken.models import Token
 from www.api.models import Agency, Region
 
 
@@ -22,3 +24,12 @@ class AgencyAdmin(admin.ModelAdmin):
 
 
 admin.site.register(Agency, AgencyAdmin)
+
+
+class TokenAdmin(admin.ModelAdmin):
+    list_display = ('user',)
+    model = Token
+    readonly_fields = ('key',)
+    search_fields = ('=key', 'user__username')
+
+admin.site.register(Token, TokenAdmin)

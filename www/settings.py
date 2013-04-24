@@ -13,6 +13,12 @@ ADMINS = (
 
 MANAGERS = ADMINS
 
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'www.api.authentication.APIKeyAuthentication',
+    )
+}
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
@@ -73,6 +79,7 @@ INSTALLED_APPS = (
     # third party apps
     'debug_toolbar',
     'rest_framework',
+    'rest_framework.authtoken',
     # our apps
     'www.api',
 )
