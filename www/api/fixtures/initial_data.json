@@ -1,153 +1,168 @@
 [
 {
-    "model": "api.region", 
     "pk": "sea", 
-    "fields": {
-        "sign": "SEA", 
-        "name": "Seattle Area"
-    }
-},
-{
     "model": "api.region", 
-    "pk": "sf", 
     "fields": {
-        "sign": "SF", 
-        "name": "San Francisco Bay Area"
+        "name": "Seattle Area", 
+        "sign": "SEA"
     }
 },
 {
-    "model": "api.agency", 
+    "pk": "sf", 
+    "model": "api.region", 
+    "fields": {
+        "name": "San Francisco Bay Area", 
+        "sign": "SF"
+    }
+},
+{
     "pk": "1", 
+    "model": "api.agency", 
     "fields": {
         "region": "sea", 
-        "url": "http://metro.kingcounty.gov/", 
-        "fare_url": "http://metro.kingcounty.gov/tops/bus/fare/fare-info.html", 
-        "lang": "en", 
-        "provider": "OneBusAway", 
-        "timezone": "America/Los_Angeles", 
+        "name": "Metro Transit", 
         "sign": "METRO", 
         "phone": "206-553-3000", 
-        "name": "Metro Transit"
+        "timezone": "America/Los_Angeles", 
+        "provider": "OneBusAway", 
+        "fare_url": "http://metro.kingcounty.gov/tops/bus/fare/fare-info.html", 
+        "lang": "en", 
+        "url": "http://metro.kingcounty.gov/"
     }
 },
 {
-    "model": "api.agency", 
     "pk": "23", 
+    "model": "api.agency", 
     "fields": {
         "region": "sea", 
-        "url": "http://www.seattle.gov/transportation/", 
-        "fare_url": null, 
-        "lang": "en", 
-        "provider": "OneBusAway", 
-        "timezone": "America/Los_Angeles", 
+        "name": "City of Seattle", 
         "sign": "CoS", 
         "phone": "206-684-7623", 
-        "name": "City of Seattle"
+        "timezone": "America/Los_Angeles", 
+        "provider": "OneBusAway", 
+        "fare_url": null, 
+        "lang": "en", 
+        "url": "http://www.seattle.gov/transportation/"
     }
 },
 {
-    "model": "api.agency", 
     "pk": "29", 
+    "model": "api.agency", 
     "fields": {
         "region": "sea", 
-        "url": "http://www.communitytransit.org/", 
-        "fare_url": null, 
-        "lang": "en", 
-        "provider": "OneBusAway", 
-        "timezone": "America/Los_Angeles", 
+        "name": "Community Transit", 
         "sign": "CT", 
         "phone": "1-800-562-1379", 
-        "name": "Community Transit"
+        "timezone": "America/Los_Angeles", 
+        "provider": "OneBusAway", 
+        "fare_url": null, 
+        "lang": "en", 
+        "url": "http://www.communitytransit.org/"
     }
 },
 {
-    "model": "api.agency", 
     "pk": "40", 
+    "model": "api.agency", 
     "fields": {
         "region": "sea", 
-        "url": "http://www.soundtransit.org/", 
-        "fare_url": "http://www.soundtransit.org/Fares-and-Passes", 
-        "lang": "en", 
-        "provider": "OneBusAway", 
-        "timezone": "America/Los_Angeles", 
+        "name": "Sound Transit", 
         "sign": "ST", 
         "phone": "1-888-889-6368", 
-        "name": "Sound Transit"
+        "timezone": "America/Los_Angeles", 
+        "provider": "OneBusAway", 
+        "fare_url": "http://www.soundtransit.org/Fares-and-Passes", 
+        "lang": "en", 
+        "url": "http://www.soundtransit.org/"
     }
 },
 {
-    "model": "api.agency", 
     "pk": "actransit", 
+    "model": "api.agency", 
     "fields": {
         "region": "sf", 
-        "url": "http://www.actransit.org/", 
-        "fare_url": "http://www.actransit.org/rider-info/fares-tickets-passes/", 
-        "lang": "en", 
-        "provider": "NextBus", 
-        "timezone": "America/Los_Angeles", 
+        "name": "AC Transit", 
         "sign": "AC", 
         "phone": "511", 
-        "name": "AC Transit"
+        "timezone": "America/Los_Angeles", 
+        "provider": "NextBus", 
+        "fare_url": "http://www.actransit.org/rider-info/fares-tickets-passes/", 
+        "lang": "en", 
+        "url": "http://www.actransit.org/"
     }
 },
 {
+    "pk": "bart", 
     "model": "api.agency", 
-    "pk": "emery", 
     "fields": {
         "region": "sf", 
-        "url": "http://www.emerygoround.com/", 
-        "fare_url": null, 
+        "name": "Bay Area Rapid Transit", 
+        "sign": "BART", 
+        "phone": "511", 
+        "timezone": "American/Los_Angeles", 
+        "provider": "Bart", 
+        "fare_url": "", 
         "lang": "en", 
-        "provider": "NextBus", 
-        "timezone": "America/Los_Angeles", 
+        "url": "http://www.bart.org/"
+    }
+},
+{
+    "pk": "emery", 
+    "model": "api.agency", 
+    "fields": {
+        "region": "sf", 
+        "name": "Emery-Go-Round", 
         "sign": "EM", 
         "phone": "510-451-3862", 
-        "name": "Emery-Go-Round"
-    }
-},
-{
-    "model": "api.agency", 
-    "pk": "sch", 
-    "fields": {
-        "region": "sea", 
-        "url": "http://seattlechildrens.org/", 
+        "timezone": "America/Los_Angeles", 
+        "provider": "NextBus", 
         "fare_url": null, 
         "lang": "en", 
-        "provider": "OneBusAway", 
-        "timezone": "America/Los_Angeles", 
-        "sign": "SCH", 
-        "phone": null, 
-        "name": "Seattle Children's Hospital"
+        "url": "http://www.emerygoround.com/"
     }
 },
 {
+    "pk": "sch", 
     "model": "api.agency", 
-    "pk": "seattle-sc", 
     "fields": {
         "region": "sea", 
-        "url": "http://www.seattlestreetcar.org/", 
-        "fare_url": "http://www.seattlestreetcar.org/faq.htm", 
-        "lang": "en", 
-        "provider": "NextBus", 
+        "name": "Seattle Children's Hospital", 
+        "sign": "SCH", 
+        "phone": null, 
         "timezone": "America/Los_Angeles", 
-        "sign": "SS", 
-        "phone": "206.553.3000", 
-        "name": "Seattle Streetcar"
+        "provider": "OneBusAway", 
+        "fare_url": null, 
+        "lang": "en", 
+        "url": "http://seattlechildrens.org/"
     }
 },
 {
+    "pk": "seattle-sc", 
     "model": "api.agency", 
+    "fields": {
+        "region": "sea", 
+        "name": "Seattle Streetcar", 
+        "sign": "SS", 
+        "phone": "206.553.3000", 
+        "timezone": "America/Los_Angeles", 
+        "provider": "NextBus", 
+        "fare_url": "http://www.seattlestreetcar.org/faq.htm", 
+        "lang": "en", 
+        "url": "http://www.seattlestreetcar.org/"
+    }
+},
+{
     "pk": "sf-muni", 
+    "model": "api.agency", 
     "fields": {
         "region": "sf", 
-        "url": "http://www.sfmta.com/", 
-        "fare_url": "http://www.sfmta.com/cms/mfares/fareinfo.htm", 
-        "lang": "en", 
-        "provider": "NextBus", 
-        "timezone": "America/Los_Angeles", 
+        "name": "San Francisco MUNI", 
         "sign": "MUNI", 
         "phone": "311", 
-        "name": "San Francisco MUNI"
+        "timezone": "America/Los_Angeles", 
+        "provider": "NextBus", 
+        "fare_url": "http://www.sfmta.com/cms/mfares/fareinfo.htm", 
+        "lang": "en", 
+        "url": "http://www.sfmta.com/"
     }
 }
 ]
