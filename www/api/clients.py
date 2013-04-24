@@ -295,7 +295,10 @@ def _bart_stop_cb(sess, resp, agency_id, route_id, stop_id, all_stops):
         if direction['abbreviation'] == dest:
             predictions = []
             for prediction in direction['estimate']:
-                away = int(prediction['minutes']) * 60
+                try:
+                    away = int(prediction['minutes']) * 60
+                except ValueError:
+                    continue
                 predictions.append(Prediction(agency_id, route_id, stop_id,
                                               away))
             resp.stop.predictions = predictions
