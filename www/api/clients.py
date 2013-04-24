@@ -186,9 +186,8 @@ def _bart_agency_cb(sess, resp, agency_id):
     routes = OrderedDict()
     for route in parse(resp.content)['root']['routes']['route']:
         color = route['color']
-        pk = '{0}-{1}'.format(route['number'], color[1:])
         if color not in routes:
-            routes[color] = _bart_route(pk, route)
+            routes[color] = _bart_route(route['number'], route)
         else:
             routes[color].id = '{0}-{1}'.format(routes[color].id,
                                                 route['number'])
@@ -258,7 +257,7 @@ class BartStops:
                                   data['name'], stops)
             self.directions.append(direction)
 
-        a, _, b = route_id.split('-')
+        a, b = route_id.split('-')
         url = '{0}{1}'.format(Bart.url, 'route.aspx')
         params = dict(Bart.params)
         params['cmd'] = 'routeinfo'
