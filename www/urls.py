@@ -48,3 +48,7 @@ urlpatterns += patterns('www.api.views',
                             r'/routes/(?P<route>[\w-]+)'
                             r'/stops/(?P<pk>[\w-]+)/$',
                             RouteStopDetail.as_view(), name='stop-detail'))
+
+urlpatterns += patterns('', url(r'^api-auth/',
+                                include('rest_framework.urls',
+                                        namespace='rest_framework')))

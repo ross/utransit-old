@@ -5,6 +5,7 @@
 from django.http import Http404, HttpResponseRedirect
 from django.shortcuts import get_object_or_404
 from rest_framework import generics, serializers
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.renderers import BrowsableAPIRenderer
 from rest_framework.response import Response
 from rest_framework.reverse import reverse
@@ -23,6 +24,7 @@ class NoParsesMixin:
 
 
 class BaseView(NoParsesMixin, APIView):
+    permission_classes = (IsAuthenticated,)
     renderer_classes = (JSONRenderer, BrowsableAPIRenderer)
 
     def get(self, request, *args, **kwargs):
@@ -44,6 +46,7 @@ class RegionList(NoParsesMixin, generics.ListAPIView):
     A list of Regions
     '''
     model = Region
+    permission_classes = (IsAuthenticated,)
     renderer_classes = (JSONRenderer, BrowsableAPIRenderer)
     serializer_class = RegionSerializer
 
@@ -66,6 +69,7 @@ class RegionDetail(NoParsesMixin, generics.RetrieveAPIView):
     A Region's details
     '''
     model = Region
+    permission_classes = (IsAuthenticated,)
     renderer_classes = (JSONRenderer, BrowsableAPIRenderer)
     serializer_class = RegionDetailSerializer
 

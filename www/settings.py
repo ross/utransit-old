@@ -10,12 +10,12 @@ ROOT = dirname(dirname(__file__))
 
 ADMINS = (
 )
-
 MANAGERS = ADMINS
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'www.api.authentication.APIKeyAuthentication',
+        'rest_framework.authentication.SessionAuthentication'
     )
 }
 

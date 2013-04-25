@@ -16,6 +16,4 @@ class APIKeyAuthentication(TokenAuthentication):
         else:
             ret = super(APIKeyAuthentication, self).authenticate(request)
 
-        if not ret and not settings.DEBUG:
-            raise exceptions.AuthenticationFailed('Token required')
         return ret
