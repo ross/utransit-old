@@ -90,6 +90,7 @@ INSTALLED_APPS = (
     'rest_framework',
     'rest_framework.authtoken',
     # our apps
+    'www.info',
     'www.api',
 )
 

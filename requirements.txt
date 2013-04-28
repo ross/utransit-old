@@ -2,5 +2,7 @@ Django
 django-filter
 djangorestframework
 Markdown
+pycountry
+pytz
 requests-futures
 xmltodict
