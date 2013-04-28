@@ -4,16 +4,12 @@
 
 from django.conf import settings
 from rest_framework import exceptions
-from rest_framework.authentication import TokenAuthentication
+from rest_framework.authentication import BaseAuthentication
 
-class APIKeyAuthentication(TokenAuthentication):
+class TokenMiddlewareAuthentication(BaseAuthentication):
 
     def authenticate(self, request):
+        return request.token_user()
 
-        token = request.GET.get('token', None)
-        if token:
-            ret = self.authenticate_credentials(token)
-        else:
-            ret = super(APIKeyAuthentication, self).authenticate(request)
-
-        return ret
+    def authenticate_header(self, request):
+        return 'Token'
