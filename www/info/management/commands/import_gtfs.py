@@ -5,8 +5,10 @@
 from django.core.management.base import BaseCommand
 from django.db import transaction
 from optparse import make_option
+from pprint import pprint
 from www.gtfs.loader import GTFSLoader
-from www.info.models import Agency, Region, Route, route_types, stop_types
+from www.info.models import Agency, Direction, Region, Route, Stop, \
+    StopDirection, route_types, stop_types
 import logging
 import re
 
@@ -46,11 +48,19 @@ class Command(BaseCommand):
     def run(self, region, directory):
         loader = GTFSLoader(directory)
 
+        logger.debug('processing stops')
+        stops = {s.stop_id: s for s in loader.stops}
+        logger.debug('processing trips')
+        trips = {}
+        for stop_time in loader.stop_times:
+            trips.setdefault(stop_time.trip_id, []).append(stop_time.stop_id)
+
         region = Region.objects.get(id=region)
 
+        logger.debug('processing agencies')
         for a in loader.agencies:
             aid = Agency.create_id(region.id, a.agency_id.lower())
-            print('{0:8s}: {1}'.format(aid, a.agency_name))
+            logger.info('%8s: %s', aid, a.agency_name)
 
             agency, created = Agency.objects \
                 .get_or_create(region=region, id=aid)
@@ -67,31 +77,20 @@ class Command(BaseCommand):
             agency.provider = 'GTFS'
             agency.save()
 
-#            for s in filter(lambda c: c.agency_id == a.agency_id,
-#                            loader.stops):
-#                sid = Stop.create_id(aid, s.stop_id.lower())
-#                print('    {0:12s}: {1}'.format(sid, s.stop_name))
-#                stop, created = Stop.objects.get_or_create(agency=agency,
-#                                                           id=sid)
-#                stop.name = s.stop_name
-#                stop.code = getattr(s, 'stop_code', None)
-#                location_type = getattr(s, 'location_type', None)
-#                if location_type:
-#                    stop.type = stop_types[int(location_type)]
-#                # TODO:
-#                #stop.lat
-#                #stop.lon
-#                stop.save()
-
-
             # only routes for this agency, sorted with "magic"
-            routes = sorted(filter(lambda c: c.agency_id == a.agency_id,
-                                   loader.routes), key=_route_key)
+            if hasattr(list(loader.routes)[0], 'agency_id'):
+                routes = filter(lambda c: c.agency_id == a.agency_id,
+                                loader.routes)
+            else:
+                # if there's no agency_id, we'll assume they're all a part of 
+                # the single agency we're processing, hopefully that's correct
+                routes = loader.routes
+            routes = sorted(routes, key=_route_key)
 
 
             for i, r in enumerate(routes):
                 rid = Route.create_id(aid, r.route_id.lower())
-                print('    {0:12s}: {1}'.format(rid, r.route_short_name))
+                logger.info('  %12s: %s', rid, r.route_short_name)
 
                 defaults = {'order': i}
                 route, created = Route.objects.get_or_create(agency=agency,
@@ -104,3 +103,51 @@ class Command(BaseCommand):
                 route.color = getattr(r, 'route_color', None)
                 route.order = i
                 route.save()
+
+                #
+                directions = {}
+                for i, t in enumerate(
+                    filter(lambda c: c.route_id == r.route_id, loader.trips)):
+                    directions.setdefault(t.direction_id, []) \
+                            .append(trips[t.trip_id])
+
+                for d, ts in directions.items():
+                    did = Direction.create_id(route.id, str(d))
+                    logger.info('    %12s: ', did)
+
+                    direction, created = \
+                        Direction.objects.get_or_create(route=route,
+                                                        id=did)
+                    # TODO: we need to find a direction name from the trip or
+                    # something like that
+                    direction.name = 'dummy'
+                    direction.save()
+
+                    for i, s in enumerate(max(ts, key=len)):
+                        s = stops[s]
+                        sid = Stop.create_id(aid, s.stop_id.lower())
+                        logger.info('      %12s: %s', sid, s.stop_name)
+
+                        stop, created = \
+                            Stop.objects.get_or_create(agency=agency,
+                                                       id=sid)
+                        stop.name = s.stop_name
+                        stop_code = getattr(s, 'stop_code', None)
+                        if stop_code:
+                            stop.code = stop_code
+                        stop_type = getattr(s, 'stop_type', None)
+                        if stop_type:
+                            stop.type = stop_types[int(stop_type)]
+                        # TODO: how do we get lat/lon
+                        #stop.lat 
+                        #stop.lon
+                        stop.save()
+
+                        defaults = {'order': i}
+                        stop_direction, created = StopDirection.objects \
+                            .get_or_create(stop=stop, direction=direction,
+                                           defaults=defaults)
+                        if stop_direction.order != i:
+                            stop_direction.order = i
+                            stop_direction.save()
+

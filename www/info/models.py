@@ -96,6 +96,10 @@ class Direction(models.Model):
     stops = models.ManyToManyField('Stop', through='StopDirection',
                                    related_name='directions')
 
+    @classmethod
+    def create_id(cls, route_id, id):
+        return '{0}:{1}'.format(route_id, id)
+
     def __unicode__(self):
         return '{0} ({1})'.format(self.name, self.route_id)
 
@@ -115,6 +119,10 @@ class Stop(models.Model):
     # TODO:
     #lat = models.FloatField()
     #lon = models.FloatField()
+
+    @classmethod
+    def create_id(cls, agency_id, id):
+        return '{0}:{1}'.format(agency_id, id)
 
     def __unicode__(self):
         return '{0} ({1})'.format(self.name, self.agency_id)

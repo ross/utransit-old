@@ -5,7 +5,8 @@
 from django import forms
 from django.contrib import admin
 from rest_framework.authtoken.models import Token
-from www.info.models import Agency, Region, Route
+from www.info.models import Agency, Direction, Region, Route, Stop, \
+    StopDirection
 
 
 class RegionAdmin(admin.ModelAdmin):
@@ -35,3 +36,21 @@ class RouteAdmin(admin.ModelAdmin):
 
 
 admin.site.register(Route, RouteAdmin)
+
+
+class DirectionAdmin(admin.ModelAdmin):
+    list_display = ('id', 'route', 'name')
+    model = Direction
+    search_fields = ('=route__id', 'id', 'name')
+
+
+admin.site.register(Direction, DirectionAdmin)
+
+
+class StopAdmin(admin.ModelAdmin):
+    list_display = ('id', 'agency', 'name')
+    model = Stop
+    search_fields = ('=agency__id', 'id', 'name')
+
+
+admin.site.register(Stop, StopAdmin)
