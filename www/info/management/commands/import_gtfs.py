@@ -100,7 +100,11 @@ class Command(BaseCommand):
                 route.sign = r.route_short_name
                 route.type = route_types[int(r.route_type)]
                 route.url = getattr(r, 'route_url', None)
-                route.color = getattr(r, 'route_color', None)
+                route_color = getattr(r, 'route_color', None)
+                if route_color:
+                    route.color = route_color
+                else:
+                    route.color = None
                 route.order = i
                 route.save()
 
@@ -137,9 +141,13 @@ class Command(BaseCommand):
                         stop_code = getattr(s, 'stop_code', None)
                         if stop_code:
                             stop.code = stop_code
+                        else:
+                            stop.code = None
                         stop_type = getattr(s, 'stop_type', None)
                         if stop_type:
                             stop.type = stop_types[int(stop_type)]
+                        else:
+                            stop.type = None
                         stop.lat = s.stop_lat
                         stop.lon = s.stop_lon
                         stop.save()

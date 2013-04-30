@@ -115,7 +115,8 @@ class Stop(models.Model):
     id = models.CharField(max_length=32, primary_key=True)
     name = models.CharField(max_length=64)
     code = models.CharField(max_length=16, blank=True, null=True)
-    type = models.CharField(max_length=7, choices=[(t, t) for t in stop_types])
+    type = models.CharField(max_length=7, choices=[(t, t) for t in stop_types],
+                            blank=True, null=True)
     lat = models.FloatField()
     lon = models.FloatField()
 
