@@ -48,6 +48,10 @@ USE_I18N = True
 USE_L10N = True
 USE_TZ = True
 
+SESSION_ENGINE = 'django.contrib.sessions.backends.signed_cookies'
+SESSION_COOKIE_SECURE = True
+SESSION_COOKIE_AGE = 60 * 60 * 24 * 7  # 1 week
+
 STATIC_ROOT = join(ROOT, 'www/static/')
 STATIC_URL = '/static/'
 
@@ -90,31 +94,42 @@ INSTALLED_APPS = (
     'rest_framework',
     'rest_framework.authtoken',
     # our apps
+    'www.info',
     'www.api',
 )
 
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
-    'filters': {
-        'require_debug_false': {
-            '()': 'django.utils.log.RequireDebugFalse'
-        }
+    'formatters': {
+        'simple': {
+            'format': '%(asctime)s %(levelname)-5s %(name)s %(message)s',
+            'datefmt': '%Y-%m-%dT%H:%M:%SZ',
+        },
     },
     'handlers': {
-        'mail_admins': {
-            'level': 'ERROR',
-            'filters': ['require_debug_false'],
-            'class': 'django.utils.log.AdminEmailHandler'
+        'console': {
+            'class': 'logging.StreamHandler',
+            'level': 'DEBUG',
+            'formatter': 'simple',
+        },
+        'file': {
+            'class': 'logging.handlers.WatchedFileHandler',
+            'level': 'DEBUG',
+            'formatter': 'simple',
+            'filename': 'django.log',
         }
     },
+    'root': {
+        'level': 'DEBUG',
+        'handlers': ('console', 'file'),
+    },
     'loggers': {
-        'django.request': {
-            'handlers': ['mail_admins'],
-            'level': 'ERROR',
-            'propagate': True,
+        'django.db.backends': {
+            # comment out to see db queries
+            'level': 'INFO',
         },
-    }
+    },
 }
 
 DEBUG_TOOLBAR_CONFIG = {
