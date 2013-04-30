@@ -8,8 +8,8 @@ from rest_framework import generics, serializers
 from rest_framework.response import Response
 from rest_framework.reverse import reverse
 from rest_framework.views import APIView
-from www.api.clients import get_provider
-from www.api.models import Agency, Region
+from www.clients import get_provider
+from www.info.models import Agency, Region, Route
 
 
 class NoParsesMixin(object):
@@ -31,6 +31,8 @@ def api_root(request):
     return HttpResponseRedirect(reverse('regions-list', request=request))
 
 
+
+
 class RegionSerializer(serializers.ModelSerializer):
 
     class Meta:
@@ -46,8 +48,10 @@ class RegionList(NoParsesMixin, generics.ListAPIView):
 
 
 class AgencySerializer(serializers.ModelSerializer):
+    id = serializers.Field(source='get_id')
 
     class Meta:
+        exclude = ('provider',)
         model = Agency
 
 
@@ -66,17 +70,35 @@ class RegionDetail(NoParsesMixin, generics.RetrieveAPIView):
     serializer_class = RegionDetailSerializer
 
 
-class AgencyDetail(BaseView):
+class RouteSerializer(serializers.ModelSerializer):
+    id = serializers.Field(source='get_id')
+
+    class Meta:
+        exclude = ('agency', 'order')
+        model = Route
+
+
+class AgencyDetailSerializer(serializers.ModelSerializer):
+    id = serializers.Field(source='get_id')
+    routes = RouteSerializer(many=True, source='get_routes')
+
+    class Meta:
+        exclude = ('provider',)
+        model = Agency
+
+
+class AgencyDetail(NoParsesMixin, generics.RetrieveAPIView):
     '''
     An Agency's details
     '''
+    model = Agency
+    serializer_class = AgencyDetailSerializer
 
-    def get_data(self, request, region, pk):
-        agency = get_object_or_404(Agency, pk=pk)
-        future = get_provider(agency.provider).routes(pk)
-        data = agency.data
-        data['routes'] = future.result().routes
-        return data
+    def get(self, request, region, pk):
+        agency = get_object_or_404(Agency, pk=Agency.create_id(region, pk))
+        agency._routes_future = get_provider(agency.provider).routes(agency)
+        serializer = self.get_serializer(agency)
+        return Response(serializer.data)
 
 
 class RouteDetail(BaseView):

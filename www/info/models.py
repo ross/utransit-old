@@ -7,6 +7,12 @@ from pycountry import languages
 from pytz import all_timezones
 
 
+class IdMixin(object):
+
+    def get_id(self):
+        return self.id.split(':')[-1]
+
+
 class Region(models.Model):
     id = models.CharField(max_length=32, primary_key=True)
     name = models.CharField(max_length=128)
@@ -36,7 +42,7 @@ _provider_choices = (('NextBus', 'NextBus'), ('OneBusAway', 'OneBusAway'),
                      ('Bart', 'Bart'), ('GTFS', 'GTFS'))
 
 
-class Agency(models.Model):
+class Agency(models.Model, IdMixin):
     region = models.ForeignKey(Region, related_name='agencies')
     id = models.CharField(max_length=32, primary_key=True)
     name = models.CharField(max_length=64)
@@ -54,6 +60,9 @@ class Agency(models.Model):
     def create_id(cls, region_id, id):
         return '{0}:{1}'.format(region_id, id)
 
+    def get_routes(self):
+        return self._routes_future.result().routes
+
     def __unicode__(self):
         return '{0} ({1})'.format(self.name, self.region_id)
 
@@ -65,7 +74,7 @@ route_types = ('light-rail', 'subway', 'rail', 'bus', 'ferry', 'cable-car',
                'gondola', 'funicular')
 
 
-class Route(models.Model):
+class Route(models.Model, IdMixin):
     agency = models.ForeignKey(Agency, related_name='routes')
     id = models.CharField(max_length=32, primary_key=True)
     name = models.CharField(max_length=64)
@@ -88,7 +97,7 @@ class Route(models.Model):
         unique_together = (('agency', 'order'),)
 
 
-class Direction(models.Model):
+class Direction(models.Model, IdMixin):
     route = models.ForeignKey(Route, related_name='directions')
     id = models.CharField(max_length=32, primary_key=True)
     name = models.CharField(max_length=64)
@@ -110,7 +119,7 @@ class Direction(models.Model):
 stop_types= ('stop', 'station')
 
 
-class Stop(models.Model):
+class Stop(models.Model, IdMixin):
     agency = models.ForeignKey(Agency, related_name='stops')
     id = models.CharField(max_length=32, primary_key=True)
     name = models.CharField(max_length=64)
@@ -132,7 +141,7 @@ class Stop(models.Model):
         unique_together = (('agency', 'code'),)
 
 
-class StopDirection(models.Model):
+class StopDirection(models.Model, IdMixin):
     stop = models.ForeignKey(Stop, related_name='stop_direction_stop')
     direction = models.ForeignKey(Direction, related_name='stop_directions')
     order = models.IntegerField()
