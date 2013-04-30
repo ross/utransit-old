@@ -104,12 +104,14 @@ class Command(BaseCommand):
                 route.order = i
                 route.save()
 
-                #
                 directions = {}
+                trip_names = {}
                 for i, t in enumerate(
                     filter(lambda c: c.route_id == r.route_id, loader.trips)):
                     directions.setdefault(t.direction_id, []) \
                             .append(trips[t.trip_id])
+                    trip_names.setdefault(t.direction_id, []) \
+                            .append(t.trip_headsign)
 
                 for d, ts in directions.items():
                     did = Direction.create_id(route.id, str(d))
@@ -118,9 +120,7 @@ class Command(BaseCommand):
                     direction, created = \
                         Direction.objects.get_or_create(route=route,
                                                         id=did)
-                    # TODO: we need to find a direction name from the trip or
-                    # something like that
-                    direction.name = 'dummy'
+                    direction.name = trip_names[d][0]
                     direction.save()
 
                     for i, s in enumerate(max(ts, key=len)):
@@ -128,9 +128,11 @@ class Command(BaseCommand):
                         sid = Stop.create_id(aid, s.stop_id.lower())
                         logger.info('      %12s: %s', sid, s.stop_name)
 
+                        defaults = {'lat': s.stop_lat, 'lon': s.stop_lon}
                         stop, created = \
                             Stop.objects.get_or_create(agency=agency,
-                                                       id=sid)
+                                                       id=sid,
+                                                       defaults=defaults)
                         stop.name = s.stop_name
                         stop_code = getattr(s, 'stop_code', None)
                         if stop_code:
@@ -138,9 +140,8 @@ class Command(BaseCommand):
                         stop_type = getattr(s, 'stop_type', None)
                         if stop_type:
                             stop.type = stop_types[int(stop_type)]
-                        # TODO: how do we get lat/lon
-                        #stop.lat 
-                        #stop.lon
+                        stop.lat = s.stop_lat
+                        stop.lon = s.stop_lon
                         stop.save()
 
                         defaults = {'order': i}

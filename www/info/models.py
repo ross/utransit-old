@@ -116,9 +116,8 @@ class Stop(models.Model):
     name = models.CharField(max_length=64)
     code = models.CharField(max_length=16, blank=True, null=True)
     type = models.CharField(max_length=7, choices=[(t, t) for t in stop_types])
-    # TODO:
-    #lat = models.FloatField()
-    #lon = models.FloatField()
+    lat = models.FloatField()
+    lon = models.FloatField()
 
     @classmethod
     def create_id(cls, agency_id, id):
