@@ -115,8 +115,8 @@ class StopSerializer(serializers.ModelSerializer):
     def field_to_native(self, obj, field_name):
         if field_name == 'stops':
             value = getattr(obj, self.source)
-            return {k: self.to_native(v) for k, v in value().items()}
-        return super(StopSerializer, self).field_name(obj, field_name)
+            return {v.get_id(): self.to_native(v) for v in value()}
+        return super(StopSerializer, self).field_to_native(obj, field_name)
 
     class Meta:
         exclude = ('agency',)

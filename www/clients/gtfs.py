@@ -24,7 +24,7 @@ class GTFS(object):
 
     def stops(self, agency, route):
         directions = route.directions.prefetch_related().all()
-        stops = {}
+        stops = []
         for direction in directions:
-            stops.update({s.get_id(): s for s in direction.stops.all()})
+            stops.extend(direction.stops.all())
         return _DummyFuture(directions=directions, stops=stops)
