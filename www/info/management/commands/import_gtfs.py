@@ -67,7 +67,8 @@ class Command(BaseCommand):
             if created:
                 # only set the sign on new objects, in case it has been edited
                 # after the fact
-                agency = Agency(region=region, id=aid, sign=a.id.upper())
+                agency = Agency(region=region, id=aid,
+                                sign=a.agency_id.upper())
             agency.name = a.agency_name
             agency.url = a.agency_url
             agency.timezone = a.agency_timezone
