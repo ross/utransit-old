@@ -2,7 +2,6 @@
 #
 #
 
-from rest_framework.authentication import get_authorization_header
 from django.contrib.auth import get_user_model
 
 
@@ -16,7 +15,11 @@ def get_user_by_token(request):
 
     token = request.GET.get('token', None)
     if not token:
-        auth = get_authorization_header(request).split()
+        auth = request.META.get('HTTP_AUTHORIZATION', b'')
+        if type(auth) == type(''):
+            # Work around django test client oddness
+            auth = auth.encode(HTTP_HEADER_ENCODING)
+        auth = auth.split()
         if auth and auth[0].lower() == b'token' and len(auth) == 2:
             token = auth[1]
     if token:
