@@ -21,3 +21,10 @@ class GTFS(object):
     def routes(self, agency):
         routes = Route.objects.filter(agency_id=agency.id).all()
         return _DummyFuture(routes=routes)
+
+    def stops(self, agency, route):
+        directions = route.directions.prefetch_related().all()
+        stops = {}
+        for direction in directions:
+            stops.update({s.get_id(): s for s in direction.stops.all()})
+        return _DummyFuture(directions=directions, stops=stops)

@@ -9,7 +9,7 @@ from rest_framework.response import Response
 from rest_framework.reverse import reverse
 from rest_framework.views import APIView
 from www.clients import get_provider
-from www.info.models import Agency, Region, Route
+from www.info.models import Agency, Direction, Region, Route, Stop
 
 
 class NoParsesMixin(object):
@@ -96,15 +96,57 @@ class AgencyDetail(NoParsesMixin, generics.RetrieveAPIView):
 
     def get(self, request, region, pk):
         agency = get_object_or_404(Agency, pk=Agency.create_id(region, pk))
-        agency._routes_future = get_provider(agency.provider).routes(agency)
+        agency._future = get_provider(agency.provider).routes(agency)
         serializer = self.get_serializer(agency)
         return Response(serializer.data)
 
 
-class RouteDetail(BaseView):
+class DirectionSerializer(serializers.ModelSerializer):
+    stops = serializers.Field(source='get_stop_ids')
+
+    class Meta:
+        exclude = ('id', 'route')
+        model = Direction
+
+
+class StopSerializer(serializers.ModelSerializer):
+    id = serializers.Field(source='get_id')
+
+    def field_to_native(self, obj, field_name):
+        if field_name == 'stops':
+            value = getattr(obj, self.source)
+            return {k: self.to_native(v) for k, v in value().items()}
+        return super(StopSerializer, self).field_name(obj, field_name)
+
+    class Meta:
+        exclude = ('agency',)
+        model = Stop
+
+
+class RouteDetailSerializer(serializers.ModelSerializer):
+    id = serializers.Field(source='get_id')
+    directions = DirectionSerializer(many=True, source='get_directions')
+    # TODO: suggest dictionary=True
+    stops = StopSerializer(many=True, source='get_stops')
+
+    class Meta:
+        exclude = ('agency', 'order')
+        model = Route
+
+
+class RouteDetail(NoParsesMixin, generics.RetrieveAPIView):
     '''
     A Route's details
     '''
+    model = Route
+    serializer_class = RouteDetailSerializer
+
+    def get(self, request, region, agency, pk):
+        agency = get_object_or_404(Agency, pk=Agency.create_id(region, agency))
+        route = get_object_or_404(Route, pk=Route.create_id(agency.id, pk))
+        route._future = get_provider(agency.provider).stops(agency, route)
+        serializer = self.get_serializer(route)
+        return Response(serializer.data)
 
     def get_data(self, request, region, agency, pk):
         agency = get_object_or_404(Agency, pk=agency)

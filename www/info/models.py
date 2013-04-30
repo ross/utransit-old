@@ -61,7 +61,7 @@ class Agency(models.Model, IdMixin):
         return '{0}:{1}'.format(region_id, id)
 
     def get_routes(self):
-        return self._routes_future.result().routes
+        return self._future.result().routes
 
     def __unicode__(self):
         return '{0} ({1})'.format(self.name, self.region_id)
@@ -89,6 +89,12 @@ class Route(models.Model, IdMixin):
     def create_id(cls, agency_id, id):
         return '{0}:{1}'.format(agency_id, id)
 
+    def get_directions(self):
+        return self._future.result().directions
+
+    def get_stops(self):
+        return self._future.result().stops
+
     def __unicode__(self):
         return '{0} ({1})'.format(self.name, self.agency_id)
 
@@ -108,6 +114,9 @@ class Direction(models.Model, IdMixin):
     @classmethod
     def create_id(cls, route_id, id):
         return '{0}:{1}'.format(route_id, id)
+
+    def get_stop_ids(self):
+        return [s.id.split(':')[-1] for s in self.stops.all()]
 
     def __unicode__(self):
         return '{0} ({1})'.format(self.name, self.route_id)
