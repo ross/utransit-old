@@ -1,0 +1,176 @@
+[
+{
+    "model": "info.region", 
+    "fields": {
+        "sign": "SEA", 
+        "name": "Seattle Area"
+    }, 
+    "pk": "sea"
+},
+{
+    "model": "info.region", 
+    "fields": {
+        "sign": "SF", 
+        "name": "San Francisco Bay Area"
+    }, 
+    "pk": "sf"
+},
+{
+    "model": "info.region", 
+    "fields": {
+        "sign": "VAN", 
+        "name": "Vancouver Area"
+    }, 
+    "pk": "van"
+},
+{
+    "model": "info.agency", 
+    "fields": {
+        "sign": "METRO", 
+        "timezone": "America/Los_Angeles", 
+        "region": "sea", 
+        "name": "Metro Transit", 
+        "fare_url": "http://metro.kingcounty.gov/tops/bus/fare/fare-info.html", 
+        "url": "http://metro.kingcounty.gov/", 
+        "provider": "OneBusAway", 
+        "phone": "206-553-3000", 
+        "lang": "en"
+    }, 
+    "pk": "sea:1"
+},
+{
+    "model": "info.agency", 
+    "fields": {
+        "sign": "CoS", 
+        "timezone": "America/Los_Angeles", 
+        "region": "sea", 
+        "name": "City of Seattle", 
+        "fare_url": null, 
+        "url": "http://www.seattle.gov/transportation/", 
+        "provider": "OneBusAway", 
+        "phone": "206-684-7623", 
+        "lang": "en"
+    }, 
+    "pk": "sea:23"
+},
+{
+    "model": "info.agency", 
+    "fields": {
+        "sign": "CT", 
+        "timezone": "America/Los_Angeles", 
+        "region": "sea", 
+        "name": "Community Transit", 
+        "fare_url": null, 
+        "url": "http://www.communitytransit.org/", 
+        "provider": "OneBusAway", 
+        "phone": "1-800-562-1379", 
+        "lang": "en"
+    }, 
+    "pk": "sea:29"
+},
+{
+    "model": "info.agency", 
+    "fields": {
+        "sign": "ST", 
+        "timezone": "America/Los_Angeles", 
+        "region": "sea", 
+        "name": "Sound Transit", 
+        "fare_url": "http://www.soundtransit.org/Fares-and-Passes", 
+        "url": "http://www.soundtransit.org/", 
+        "provider": "OneBusAway", 
+        "phone": "1-888-889-6368", 
+        "lang": "en"
+    }, 
+    "pk": "sea:40"
+},
+{
+    "model": "info.agency", 
+    "fields": {
+        "sign": "SCH", 
+        "timezone": "America/Los_Angeles", 
+        "region": "sea", 
+        "name": "Seattle Children's Hospital", 
+        "fare_url": null, 
+        "url": "http://seattlechildrens.org/", 
+        "provider": "OneBusAway", 
+        "phone": null, 
+        "lang": "en"
+    }, 
+    "pk": "sea:sch"
+},
+{
+    "model": "info.agency", 
+    "fields": {
+        "sign": "SS", 
+        "timezone": "America/Los_Angeles", 
+        "region": "sea", 
+        "name": "Seattle Streetcar", 
+        "fare_url": "http://www.seattlestreetcar.org/faq.htm", 
+        "url": "http://www.seattlestreetcar.org/", 
+        "provider": "NextBus", 
+        "phone": "206.553.3000", 
+        "lang": "en"
+    }, 
+    "pk": "sea:seattle-sc"
+},
+{
+    "model": "info.agency", 
+    "fields": {
+        "sign": "AC", 
+        "timezone": "America/Los_Angeles", 
+        "region": "sf", 
+        "name": "AC Transit", 
+        "fare_url": "http://www.actransit.org/rider-info/fares-tickets-passes/", 
+        "url": "http://www.actransit.org/", 
+        "provider": "NextBus", 
+        "phone": "511", 
+        "lang": "en"
+    }, 
+    "pk": "sf:actransit"
+},
+{
+    "model": "info.agency", 
+    "fields": {
+        "sign": "BART", 
+        "timezone": "America/Los_Angeles", 
+        "region": "sf", 
+        "name": "Bay Area Rapid Transit", 
+        "fare_url": "", 
+        "url": "http://www.bart.org/", 
+        "provider": "Bart", 
+        "phone": "511", 
+        "lang": "en"
+    }, 
+    "pk": "sf:bart"
+},
+{
+    "model": "info.agency", 
+    "fields": {
+        "sign": "EM", 
+        "timezone": "America/Los_Angeles", 
+        "region": "sf", 
+        "name": "Emery-Go-Round", 
+        "fare_url": null, 
+        "url": "http://www.emerygoround.com/", 
+        "provider": "NextBus", 
+        "phone": "510-451-3862", 
+        "lang": "en"
+    }, 
+    "pk": "sf:emery"
+},
+{
+    "model": "info.agency", 
+    "fields": {
+        "sign": "MUNI", 
+        "timezone": "America/Los_Angeles", 
+        "region": "sf", 
+        "name": "San Francisco MUNI", 
+        "fare_url": "http://www.sfmta.com/cms/mfares/fareinfo.htm", 
+        "url": "http://www.sfmta.com/", 
+        "provider": "NextBus", 
+        "phone": "311", 
+        "lang": "en"
+    }, 
+    "pk": "sf:sf-muni"
+}
+]
