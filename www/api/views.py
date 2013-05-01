@@ -9,7 +9,7 @@ from rest_framework.response import Response
 from rest_framework.reverse import reverse
 from rest_framework.views import APIView
 from www.clients import get_provider
-from www.info.models import Agency, Direction, Region, Route, Stop
+from www.info.models import Agency, Direction, Prediction, Region, Route, Stop
 
 
 class NoParsesMixin(object):
@@ -27,11 +27,13 @@ class BaseView(NoParsesMixin, APIView):
         return Response(self.get_data(request, *args, **kwargs))
 
 
+## Root
+
 def api_root(request):
     return HttpResponseRedirect(reverse('regions-list', request=request))
 
 
-
+## Regions
 
 class RegionSerializer(serializers.ModelSerializer):
 
@@ -46,6 +48,7 @@ class RegionList(NoParsesMixin, generics.ListAPIView):
     model = Region
     serializer_class = RegionSerializer
 
+## Region
 
 class AgencySerializer(serializers.ModelSerializer):
     id = serializers.Field(source='get_id')
@@ -69,6 +72,7 @@ class RegionDetail(NoParsesMixin, generics.RetrieveAPIView):
     model = Region
     serializer_class = RegionDetailSerializer
 
+## Agency
 
 class RouteSerializer(serializers.ModelSerializer):
     id = serializers.Field(source='get_id')
@@ -80,7 +84,7 @@ class RouteSerializer(serializers.ModelSerializer):
 
 class AgencyDetailSerializer(serializers.ModelSerializer):
     id = serializers.Field(source='get_id')
-    routes = RouteSerializer(many=True, source='get_routes')
+    routes = RouteSerializer(many=True)
 
     class Meta:
         exclude = ('provider',)
@@ -94,12 +98,13 @@ class AgencyDetail(NoParsesMixin, generics.RetrieveAPIView):
     model = Agency
     serializer_class = AgencyDetailSerializer
 
-    def get(self, request, region, pk):
-        agency = get_object_or_404(Agency, pk=Agency.create_id(region, pk))
-        agency._future = get_provider(agency.provider).routes(agency)
-        serializer = self.get_serializer(agency)
+    def retrieve(self, request, region, pk):
+        self.object = get_object_or_404(Agency,
+                                        pk=Agency.create_id(region, pk))
+        serializer = self.get_serializer(self.object)
         return Response(serializer.data)
 
+## Route
 
 class DirectionSerializer(serializers.ModelSerializer):
     stops = serializers.Field(source='get_stop_ids')
@@ -125,8 +130,7 @@ class StopSerializer(serializers.ModelSerializer):
 
 class RouteDetailSerializer(serializers.ModelSerializer):
     id = serializers.Field(source='get_id')
-    directions = DirectionSerializer(many=True, source='get_directions')
-    # TODO: suggest dictionary=True
+    directions = DirectionSerializer(many=True)
     stops = StopSerializer(many=True, source='get_stops')
 
     class Meta:
@@ -141,25 +145,37 @@ class RouteDetail(NoParsesMixin, generics.RetrieveAPIView):
     model = Route
     serializer_class = RouteDetailSerializer
 
-    def get(self, request, region, agency, pk):
-        agency = get_object_or_404(Agency, pk=Agency.create_id(region, agency))
-        route = get_object_or_404(Route, pk=Route.create_id(agency.id, pk))
-        route._future = get_provider(agency.provider).stops(agency, route)
-        serializer = self.get_serializer(route)
+    def retrieve(self, request, region, agency, pk):
+        agency = Agency.create_id(region, agency)
+        self.object = get_object_or_404(Route, pk=Route.create_id(agency, pk))
+        serializer = self.get_serializer(self.object)
         return Response(serializer.data)
 
-    def get_data(self, request, region, agency, pk):
-        agency = get_object_or_404(Agency, pk=agency)
-        future = get_provider(agency.provider).stops(agency.id, pk)
-        return future.result().route
+## Stop
+
+class PredictionSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Prediction
+
+class StopDetailSerializer(serializers.ModelSerializer):
+    id = serializers.Field(source='get_id')
+    predictions = PredictionSerializer(many=True, source='get_predictions')
+
+    class Meta:
+        exclude = ('agency',)
+        model = Stop
 
 
-class RouteStopDetail(BaseView):
+class RouteStopDetail(NoParsesMixin, generics.RetrieveAPIView):
     '''
     A Stop's details for a specific Route
     '''
+    model = Stop
+    serializer_class = StopDetailSerializer
 
-    def get_data(self, request, region, agency, route, pk):
-        agency = get_object_or_404(Agency, pk=agency)
-        future = get_provider(agency.provider).stop(agency.id, route, pk)
-        return future.result().stop
+    def retrieve(self, request, region, agency, route, pk):
+        agency = Agency.create_id(region, agency)
+        self.object = get_object_or_404(Stop, pk=Stop.create_id(agency, pk))
+        serializer = self.get_serializer(self.object)
+        return Response(serializer.data)

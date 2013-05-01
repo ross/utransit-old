@@ -73,9 +73,6 @@ class Agency(models.Model, IdMixin):
     def create_id(cls, region_id, id):
         return '{0}:{1}'.format(region_id, id)
 
-    def get_routes(self):
-        return self._future.result().routes
-
     def __str__(self):
         return '{0} ({1})'.format(self.name, self.region_id)
 
@@ -103,11 +100,11 @@ class Route(models.Model, IdMixin, UpdateMixin):
     def create_id(cls, agency_id, id):
         return '{0}:{1}'.format(agency_id, id)
 
-    def get_directions(self):
-        return self._future.result().directions
-
     def get_stops(self):
-        return self._future.result().stops
+        stops = []
+        for direction in self.directions.all():
+            stops.extend(direction.stops.all())
+        return stops
 
     def __str__(self):
         return '{0} ({1})'.format(self.name, self.agency_id)
@@ -156,6 +153,9 @@ class Stop(models.Model, IdMixin, UpdateMixin):
     def create_id(cls, agency_id, id):
         return '{0}:{1}'.format(agency_id, id)
 
+    def get_predictions(self):
+        return []
+
     def __str__(self):
         return '{0} ({1})'.format(self.name, self.agency_id)
 
@@ -176,6 +176,17 @@ class StopDirection(models.Model, IdMixin):
     class Meta:
         ordering = ('order',)
         unique_together = (('stop', 'direction'),)
+
+
+
+class Prediction(models.Model):
+    # TODO: no need to create a table for these, they won't be persisted
+    stop = models.ForeignKey(Stop, related_name='predictions')
+    away = models.IntegerField()
+    departure = models.NullBooleanField(blank=True, null=True)
+
+    class Meta:
+        ordering = ('away',)
 
 
 # TODO: do we want to connect stops directly to routes for performance?
