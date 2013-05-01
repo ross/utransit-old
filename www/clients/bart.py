@@ -33,7 +33,8 @@ class Bart:
                 routes[color] = Route(id=id, agency=agency, name=route['name'],
                                       # TODO: sign
                                       sign='XX', type=route_types[1],
-                                      color=route['color'])
+                                      color=route['color'],
+                                      order=len(routes))
             else:
                 routes[color].id = '{0}-{1}'.format(routes[color].id,
                                                     route['number'])
