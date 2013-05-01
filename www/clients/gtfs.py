@@ -2,29 +2,124 @@
 #
 #
 
-from www.info.models import Route
+from collections import defaultdict
+from csv import DictReader
+from os.path import join
+from www.info.models import Direction, Route, Stop, route_types, stop_types
+import re
+
+digit_re = re.compile(r'^(\d+)(.*)')
 
 
-class _DummyFuture:
-
-    def __init__(self, **kwargs):
-        for k, v in kwargs.items():
-            setattr(self, k, v)
-
-    def result(self):
-        # return ourself, we'll have the desired properties set up in __init__
-        return self
+def _route_key(r):
+    key = r.sign
+    match = digit_re.match(key)
+    if match:
+        return 'zzz{0:08d}{1}'.format(int(match.group(1)), match.group(2))
+    else:
+        return key
 
 
-class GTFS(object):
+class Gtfs(object):
+
+    def __init__(self, directory):
+        self.directory = directory
+
+        self._cached_routes = None
+        self._cached_trips = None
+        self._cached_stops = None
+        self._cached_trip_stops = None
+
+    def _routes(self):
+        if not self._cached_routes:
+            with open(join(self.directory, 'routes.txt'), 'r') as fh:
+                self._cached_routes = list(DictReader(fh))
+
+        return self._cached_routes
 
     def routes(self, agency):
-        routes = Route.objects.filter(agency_id=agency.id).all()
-        return _DummyFuture(routes=routes)
+        routes = []
 
-    def stops(self, agency, route):
-        directions = route.directions.prefetch_related().all()
-        stops = []
-        for direction in directions:
-            stops.extend(direction.stops.all())
-        return _DummyFuture(directions=directions, stops=stops)
+        aid = agency.get_id()
+        for route in self._routes():
+            # if there's no agency_id, we'll assume they're all a part of
+            # the single agency we're processing, hopefully that's correct
+            if 'agency_id' in route and route['agency_id'] != aid:
+                continue
+            id = Route.create_id(agency.id, route['route_id'])
+            routes.append(Route(agency=agency, id=id,
+                                sign=route['route_short_name'],
+                                name=route['route_long_name'],
+                                type=route_types[int(route['route_type'])],
+                                url=route.get('route_url', None),
+                                color=route.get('route_color', None)))
+
+        return sorted(routes, key=_route_key)
+
+    def _trips(self):
+        if not self._cached_trips:
+            with open(join(self.directory, 'trips.txt'), 'r') as fh:
+                self._cached_trips = list(DictReader(fh))
+
+        return self._cached_trips
+
+    def _stops(self):
+        if not self._cached_stops:
+            with open(join(self.directory, 'stops.txt'), 'r') as fh:
+                self._cached_stops = {s['stop_id']: s for s in DictReader(fh)}
+
+        return self._cached_stops
+
+    def _trip_stops(self):
+        if not self._cached_trip_stops:
+            trip_stops = defaultdict(list)
+            with open(join(self.directory, 'stop_times.txt'), 'r') as fh:
+                for stop_time in DictReader(fh):
+                    trip_stops[stop_time['trip_id']] \
+                        .append(stop_time['stop_id'])
+            self._cached_trip_stops = trip_stops
+
+        return self._cached_trip_stops
+
+    def stops(self, route):
+        directions = defaultdict(list)
+        trip_names = defaultdict(list)
+        rid = route.get_id()
+
+        trip_stops = self._trip_stops()
+        direction_stops = defaultdict(list)
+        trips = filter(lambda c: rid == c['route_id'], self._trips())
+        for i, t in enumerate(trips):
+            tid = t['direction_id']
+            direction_stops[tid].append(trip_stops[t['trip_id']])
+            trip_names[tid].append(t['trip_headsign'])
+
+        all_stops = self._stops()
+        directions = []
+        stops = {}
+        for d, ts in direction_stops.items():
+            did = Direction.create_id(route.id, str(d))
+            # TODO: pick the most common name?
+            direction = Direction(route=route, id=did,
+                                  name=trip_names[d][0])
+
+            # pick the largest set of stops, hopefully that'll cover everything
+            stop_ids = []
+            for sid in max(ts, key=len):
+                stop = all_stops[sid]
+                sid = Stop.create_id(route.agency.id, sid)
+                stop_type = stop.get('location_type', None)
+                if stop_type:
+                    stop_type = stop_types[int(stop_type)]
+                stop = Stop(agency=route.agency, id=sid,
+                            name=stop['stop_name'], lat=stop['stop_lat'],
+                            lon=stop['stop_lon'], type=stop_type,
+                            code=stop.get('code', None))
+
+                stop_ids.append(stop.id)
+                stops[stop.id] = stop
+
+            direction.stop_ids = stop_ids
+            directions.append(direction)
+
+        return (directions, stops)

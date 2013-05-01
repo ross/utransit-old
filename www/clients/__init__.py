@@ -3,7 +3,7 @@
 #
 
 from .bart import Bart
-from .gtfs import GTFS
+from .gtfs import Gtfs
 from .nextbus import NextBus
 from .onebusaway import OneBusAway
 
@@ -15,5 +15,5 @@ def get_provider(id):
     elif id == 'Bart':
         return Bart()
     elif id == 'GTFS':
-        return GTFS()
+        return Gtfs()
     raise Exception('unknown provider')
