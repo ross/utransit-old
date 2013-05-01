@@ -156,6 +156,7 @@ class RouteDetail(NoParsesMixin, generics.RetrieveAPIView):
 class PredictionSerializer(serializers.ModelSerializer):
 
     class Meta:
+        exclude = ('stop',)
         model = Prediction
 
 class StopDetailSerializer(serializers.ModelSerializer):
@@ -176,6 +177,10 @@ class RouteStopDetail(NoParsesMixin, generics.RetrieveAPIView):
 
     def retrieve(self, request, region, agency, route, pk):
         agency = Agency.create_id(region, agency)
-        self.object = get_object_or_404(Stop, pk=Stop.create_id(agency, pk))
-        serializer = self.get_serializer(self.object)
+        route = get_object_or_404(Route, pk=Route.create_id(agency, route))
+        stop = get_object_or_404(Stop, pk=Stop.create_id(agency, pk))
+        stop._predictions = get_provider(stop.agency.provider) \
+            .predictions(route, stop)
+        self.object = stop
+        serializer = self.get_serializer(stop)
         return Response(serializer.data)

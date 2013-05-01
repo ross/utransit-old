@@ -154,15 +154,13 @@ class Stop(models.Model, IdMixin, UpdateMixin):
         return '{0}:{1}'.format(agency_id, id)
 
     def get_predictions(self):
-        return []
+        return self._predictions
 
     def __str__(self):
         return '{0} ({1})'.format(self.name, self.agency_id)
 
     class Meta:
         ordering = ('name',)
-        # some agencies have duplicate codes
-        #unique_together = (('agency', 'code'),)
 
 
 class StopDirection(models.Model, IdMixin):

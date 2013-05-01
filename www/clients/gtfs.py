@@ -115,3 +115,6 @@ class Gtfs(object):
             directions.append(direction)
 
         return (directions, stops)
+
+    def predictions(self, route, stop):
+        return []

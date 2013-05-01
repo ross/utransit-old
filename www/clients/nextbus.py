@@ -3,9 +3,10 @@
 #
 
 from collections import OrderedDict
-from www.info.models import Direction, Route, Stop
+from www.info.models import Direction, Prediction, Route, Stop
 from xmltodict import parse
 from .utils import RateLimitedSession
+import requests
 
 class NextBus(object):
     url = 'http://webservices.nextbus.com/service/publicXMLFeed'
@@ -59,3 +60,19 @@ class NextBus(object):
             directions.append(direction)
 
         return (directions, stops)
+
+    def predictions(self, route, stop):
+        params = {'command': 'predictions', 'a': stop.agency.get_id(),
+                  'r': route.get_id(), 's': stop.get_id()}
+
+        resp = requests.get(self.url, params=params)
+
+        predictions = []
+        preds = parse(resp.content)['body']['predictions']
+        if 'direction' in preds:
+            for prediction in preds['direction']['prediction']:
+                predictions.append(
+                    Prediction(stop=stop, away=prediction['@seconds'],
+                               departure=prediction['@isDeparture']))
+
+        return predictions

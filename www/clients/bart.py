@@ -3,9 +3,11 @@
 #
 
 from collections import OrderedDict
-from www.info.models import Direction, Route, Stop, route_types, stop_types
+from www.info.models import Direction, Prediction, Route, Stop, \
+    route_types, stop_types
 from xmltodict import parse
 from .utils import RateLimitedSession
+import requests
 
 
 class Bart:
@@ -105,4 +107,25 @@ class Bart:
 
         return ([direction_a, direction_b], stops)
 
+    def predictions(self, route, stop):
+        abbr, dest = stop.get_id().split('-')
 
+        url = '{0}{1}'.format(self.url, 'etd.aspx')
+        params = dict(self.params)
+        params['cmd'] = 'etd'
+        params['orig'] = abbr
+        resp = requests.get(url, params=params)
+
+        for direction in parse(resp.content)['root']['station']['etd']:
+            print(direction['abbreviation'], dest)
+            if direction['abbreviation'] == dest:
+                predictions = []
+                for prediction in direction['estimate']:
+                    try:
+                        away = int(prediction['minutes']) * 60
+                    except ValueError:
+                        continue
+                    predictions.append(Prediction(stop=stop, away=away))
+                return predictions
+
+        return []

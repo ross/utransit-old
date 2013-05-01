@@ -2,8 +2,10 @@
 #
 #
 
-from www.info.models import Direction, Route, Stop, route_types, stop_types
+from www.info.models import Direction, Prediction, Route, Stop, route_types, \
+    stop_types
 from .utils import RateLimitedSession, route_key
+import requests
 
 
 class OneBusAway(object):
@@ -65,3 +67,21 @@ class OneBusAway(object):
                 directions.append(direction)
 
         return (directions, stops)
+
+    def predictions(self, route, stop):
+        url = 'http://api.onebusaway.org/api/where/' \
+            'arrivals-and-departures-for-stop/{0}.json'.format(stop.get_id())
+
+        resp = requests.get(url, params=self.params)
+
+        data = resp.json()
+        current_time = data['currentTime']
+        data = data['data']
+        route_id = route.get_id()
+        predictions = []
+        for arrival in data['arrivalsAndDepartures']:
+            away = (arrival['predictedArrivalTime'] - current_time) / 1000.0
+            if arrival['routeId'] == route_id and away >= 0:
+                predictions.append(Prediction(stop=stop, away=int(away)))
+
+        return predictions
