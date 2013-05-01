@@ -34,6 +34,7 @@ admin.site.register(Agency, AgencyAdmin)
 class RouteAdmin(admin.ModelAdmin):
     list_display = ('id', 'agency', 'name')
     model = Route
+    ordering = ('agency', 'order')
     search_fields = ('=agency__id', 'id', 'name')
     # TODO: static list of directions
 

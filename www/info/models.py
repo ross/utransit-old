@@ -13,6 +13,19 @@ class IdMixin(object):
         return self.id.split(':')[-1]
 
 
+class UpdateMixin(object):
+
+    def update(self, other):
+        changed = False
+        for k, v in other.__dict__.items():
+            # ignore id, hidden stuff, and foreign keys
+            if not (k == 'id' or k.startswith('_') or k.endswith('_id')) and \
+                    getattr(self, k) != v :
+                changed = True
+                setattr(self, k, v)
+        return changed
+
+
 class Region(models.Model):
     id = models.CharField(max_length=32, primary_key=True)
     name = models.CharField(max_length=128)
@@ -74,13 +87,14 @@ route_types = ('light-rail', 'subway', 'rail', 'bus', 'ferry', 'cable-car',
                'gondola', 'funicular')
 
 
-class Route(models.Model, IdMixin):
+class Route(models.Model, IdMixin, UpdateMixin):
     agency = models.ForeignKey(Agency, related_name='routes')
     id = models.CharField(max_length=32, primary_key=True)
     name = models.CharField(max_length=64)
     sign = models.CharField(max_length=8)
     type = models.CharField(max_length=10,
-                            choices=[(t, t) for t in route_types])
+                            choices=[(t, t) for t in route_types],
+                            blank=True, null=True)
     url = models.URLField(max_length=256, blank=True, null=True)
     color = models.CharField(max_length=len('#ffffff'), blank=True, null=True)
     order = models.IntegerField()
@@ -103,7 +117,7 @@ class Route(models.Model, IdMixin):
         unique_together = (('agency', 'order'),)
 
 
-class Direction(models.Model, IdMixin):
+class Direction(models.Model, IdMixin, UpdateMixin):
     route = models.ForeignKey(Route, related_name='directions')
     id = models.CharField(max_length=32, primary_key=True)
     name = models.CharField(max_length=64)
@@ -128,7 +142,7 @@ class Direction(models.Model, IdMixin):
 stop_types= ('stop', 'station')
 
 
-class Stop(models.Model, IdMixin):
+class Stop(models.Model, IdMixin, UpdateMixin):
     agency = models.ForeignKey(Agency, related_name='stops')
     id = models.CharField(max_length=32, primary_key=True)
     name = models.CharField(max_length=64)

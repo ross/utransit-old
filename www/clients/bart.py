@@ -30,8 +30,7 @@ class Bart:
             color = route['color']
             if color not in routes:
                 id = Route.create_id(agency.id, route['number'])
-                routes[color] = Route(id=Route.create_id(agency.id, id),
-                                      agency=agency, name=route['name'],
+                routes[color] = Route(id=id, agency=agency, name=route['name'],
                                       # TODO: sign
                                       sign='XX', type=route_types[1],
                                       color=route['color'])

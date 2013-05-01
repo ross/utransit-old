@@ -44,7 +44,7 @@ class OneBusAway(object):
         stops = {}
         for stop in data['references']['stops']:
             stop = Stop(agency=route.agency,
-                        id=Stop.create_id(route.id, stop['id']),
+                        id=Stop.create_id(route.agency.id, stop['id']),
                         name=stop['name'], lat=stop['lat'],
                         lon=stop['lon'], code=stop['code'],
                         type=stop_types[int(stop['locationType'])])

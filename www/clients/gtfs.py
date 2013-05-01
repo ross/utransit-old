@@ -6,33 +6,20 @@ from collections import defaultdict
 from csv import DictReader
 from os.path import join
 from www.info.models import Direction, Route, Stop, route_types, stop_types
-import re
-
-digit_re = re.compile(r'^(\d+)(.*)')
-
-
-def _route_key(r):
-    key = r.sign
-    match = digit_re.match(key)
-    if match:
-        return 'zzz{0:08d}{1}'.format(int(match.group(1)), match.group(2))
-    else:
-        return key
+from .utils import route_key
 
 
 class Gtfs(object):
 
-    def __init__(self, directory):
-        self.directory = directory
-
+    def __init__(self):
         self._cached_routes = None
         self._cached_trips = None
         self._cached_stops = None
         self._cached_trip_stops = None
 
-    def _routes(self):
+    def _routes(self, directory):
         if not self._cached_routes:
-            with open(join(self.directory, 'routes.txt'), 'r') as fh:
+            with open(join(directory, 'routes.txt'), 'r') as fh:
                 self._cached_routes = list(DictReader(fh))
 
         return self._cached_routes
@@ -41,7 +28,7 @@ class Gtfs(object):
         routes = []
 
         aid = agency.get_id()
-        for route in self._routes():
+        for route in self._routes(join('data', agency.id)):
             # if there's no agency_id, we'll assume they're all a part of
             # the single agency we're processing, hopefully that's correct
             if 'agency_id' in route and route['agency_id'] != aid:
@@ -54,26 +41,29 @@ class Gtfs(object):
                                 url=route.get('route_url', None),
                                 color=route.get('route_color', None)))
 
-        return sorted(routes, key=_route_key)
+        routes.sort(key=route_key)
+        for i, route in enumerate(routes):
+            route.order = i
+        return routes
 
-    def _trips(self):
+    def _trips(self, directory):
         if not self._cached_trips:
-            with open(join(self.directory, 'trips.txt'), 'r') as fh:
+            with open(join(directory, 'trips.txt'), 'r') as fh:
                 self._cached_trips = list(DictReader(fh))
 
         return self._cached_trips
 
-    def _stops(self):
+    def _stops(self, directory):
         if not self._cached_stops:
-            with open(join(self.directory, 'stops.txt'), 'r') as fh:
+            with open(join(directory, 'stops.txt'), 'r') as fh:
                 self._cached_stops = {s['stop_id']: s for s in DictReader(fh)}
 
         return self._cached_stops
 
-    def _trip_stops(self):
+    def _trip_stops(self, directory):
         if not self._cached_trip_stops:
             trip_stops = defaultdict(list)
-            with open(join(self.directory, 'stop_times.txt'), 'r') as fh:
+            with open(join(directory, 'stop_times.txt'), 'r') as fh:
                 for stop_time in DictReader(fh):
                     trip_stops[stop_time['trip_id']] \
                         .append(stop_time['stop_id'])
@@ -86,15 +76,17 @@ class Gtfs(object):
         trip_names = defaultdict(list)
         rid = route.get_id()
 
-        trip_stops = self._trip_stops()
+        directory = join('data', route.agency.id)
+
+        trip_stops = self._trip_stops(directory)
         direction_stops = defaultdict(list)
-        trips = filter(lambda c: rid == c['route_id'], self._trips())
+        trips = filter(lambda c: rid == c['route_id'], self._trips(directory))
         for i, t in enumerate(trips):
             tid = t['direction_id']
             direction_stops[tid].append(trip_stops[t['trip_id']])
             trip_names[tid].append(t['trip_headsign'])
 
-        all_stops = self._stops()
+        all_stops = self._stops(directory)
         directions = []
         stops = {}
         for d, ts in direction_stops.items():

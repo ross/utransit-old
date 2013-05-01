@@ -2,16 +2,16 @@
 #
 #
 
-from requests import Session
+from collections import OrderedDict
 from www.info.models import Direction, Route, Stop
 from xmltodict import parse
-
+from .utils import RateLimitedSession
 
 class NextBus(object):
     url = 'http://webservices.nextbus.com/service/publicXMLFeed'
 
     def __init__(self):
-        self.session = Session()
+        self.session = RateLimitedSession()
 
     def routes(self, agency):
         # use external id
@@ -20,12 +20,12 @@ class NextBus(object):
         resp = self.session.get(self.url, params=params)
 
         routes = []
-        for route in parse(resp.content)['body']['route']:
+        for i, route in enumerate(parse(resp.content)['body']['route']):
             tag = route['@tag']
             id = Route.create_id(agency.id, tag)
             # TODO: type, url, color (may require pre-walk etc.)
             routes.append(Route(id=id, agency=agency, name=route['@title'],
-                                sign=tag, type=None))
+                                sign=tag, order=i))
         return routes
 
     def stops(self, route):
@@ -38,15 +38,20 @@ class NextBus(object):
         stops = {}
         for stop in data['stop']:
             tag = stop['@tag']
-            stop = Stop(agency=route.agency, id=Stop.create_id(route.id, tag),
+            id = Stop.create_id(route.agency.id, tag)
+            stop = Stop(agency=route.agency, id=id,
                         name=stop['@title'], code=stop['@stopId'],
                         lat=stop['@lat'], lon=stop['@lon'])
             stops[stop.id] = stop
         directions = []
-        for direction in data['direction']:
+        ds = data['direction']
+        if isinstance(ds, OrderedDict):
+            # there's only one direction, xmltodict doesn't return an array
+            ds = [ds]
+        for direction in ds:
             if direction['@useForUI'] != 'true':
                 continue
-            stop_ids = [Stop.create_id(route.agency, stop['@tag'])
+            stop_ids = [Stop.create_id(route.agency.id, stop['@tag'])
                         for stop in direction['stop']]
             id = Direction.create_id(route.id, direction['@tag'])
             direction = Direction(route=route, id=id, name=direction['@title'])
