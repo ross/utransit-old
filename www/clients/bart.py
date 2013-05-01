@@ -3,9 +3,9 @@
 #
 
 from collections import OrderedDict
-from requests import Session
 from www.info.models import Direction, Route, Stop, route_types, stop_types
 from xmltodict import parse
+from .utils import RateLimitedSession
 
 
 class Bart:
@@ -13,7 +13,7 @@ class Bart:
     params = {'key': 'MW9S-E7SL-26DU-VV8V'};
 
     def __init__(self):
-        self.session = Session()
+        self.session = RateLimitedSession()
 
         self._cached_all_stops = None
 
@@ -31,8 +31,7 @@ class Bart:
             if color not in routes:
                 id = Route.create_id(agency.id, route['number'])
                 routes[color] = Route(id=id, agency=agency, name=route['name'],
-                                      # TODO: sign
-                                      sign='XX', type=route_types[1],
+                                      sign=route['abbr'], type=route_types[1],
                                       color=route['color'],
                                       order=len(routes))
             else:

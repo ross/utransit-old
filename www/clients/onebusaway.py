@@ -2,17 +2,15 @@
 #
 #
 
-from requests import Session
 from www.info.models import Direction, Route, Stop, route_types, stop_types
-
-
+from .utils import RateLimitedSession, route_key
 
 
 class OneBusAway(object):
     params = {'key': 'e5ca6a2f-d074-4657-879e-6b572b3364bd'}
 
     def __init__(self):
-        self.session = Session()
+        self.session = RateLimitedSession()
 
     def routes(self, agency):
         url = 'http://api.onebusaway.org/api/where/routes-for-agency/' \
@@ -22,13 +20,18 @@ class OneBusAway(object):
 
         routes = []
         for route in resp.json()['data']['list']:
-            long_name = route['longName'] if route['longName'] else None
+            long_name = route['longName'] if route['longName'] else \
+                route['shortName']
             color = route['color'] if route['color'] else None
             id = Route.create_id(agency.id, route['id'])
             routes.append(Route(id=id, agency=agency, sign=route['shortName'],
                                 name=long_name,
                                 type=route_types[int(route['type'])],
                                 url=route['url'], color=color))
+
+        routes.sort(key=route_key)
+        for i, route in enumerate(routes):
+            route.order = i
 
         return routes
 
@@ -40,6 +43,8 @@ class OneBusAway(object):
 
         resp = self.session.get(url, params=params)
 
+        # TODO: stops can be shared by agencies, but the first one to see it
+        # will get it here :(
         data = resp.json()['data']
         stops = {}
         for stop in data['references']['stops']:

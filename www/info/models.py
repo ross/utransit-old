@@ -37,7 +37,7 @@ class Region(models.Model):
                 'agencies': self.agencies.all()}
         return data
 
-    def __unicode__(self):
+    def __str__(self):
         return self.name
 
     class Meta:
@@ -76,7 +76,7 @@ class Agency(models.Model, IdMixin):
     def get_routes(self):
         return self._future.result().routes
 
-    def __unicode__(self):
+    def __str__(self):
         return '{0} ({1})'.format(self.name, self.region_id)
 
     class Meta:
@@ -109,7 +109,7 @@ class Route(models.Model, IdMixin, UpdateMixin):
     def get_stops(self):
         return self._future.result().stops
 
-    def __unicode__(self):
+    def __str__(self):
         return '{0} ({1})'.format(self.name, self.agency_id)
 
     class Meta:
@@ -132,7 +132,7 @@ class Direction(models.Model, IdMixin, UpdateMixin):
     def get_stop_ids(self):
         return [s.id.split(':')[-1] for s in self.stops.all()]
 
-    def __unicode__(self):
+    def __str__(self):
         return '{0} ({1})'.format(self.name, self.route_id)
 
     class Meta:
@@ -156,12 +156,13 @@ class Stop(models.Model, IdMixin, UpdateMixin):
     def create_id(cls, agency_id, id):
         return '{0}:{1}'.format(agency_id, id)
 
-    def __unicode__(self):
+    def __str__(self):
         return '{0} ({1})'.format(self.name, self.agency_id)
 
     class Meta:
         ordering = ('name',)
-        unique_together = (('agency', 'code'),)
+        # some agencies have duplicate codes
+        #unique_together = (('agency', 'code'),)
 
 
 class StopDirection(models.Model, IdMixin):
@@ -169,7 +170,7 @@ class StopDirection(models.Model, IdMixin):
     direction = models.ForeignKey(Direction, related_name='stop_directions')
     order = models.IntegerField()
 
-    def __unicode__(self):
+    def __str__(self):
         return '{0} ({1})'.format(self.stop_id, self.direction_id)
 
     class Meta:
