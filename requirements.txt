@@ -2,6 +2,7 @@ Django
 django-filter
 djangorestframework
 Markdown
+MySQL-python
 pycountry
 pytz
 requests-futures

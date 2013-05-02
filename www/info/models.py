@@ -29,7 +29,7 @@ class UpdateMixin(object):
 class Region(models.Model):
     id = models.CharField(max_length=32, primary_key=True)
     name = models.CharField(max_length=128)
-    sign = models.CharField(max_length=8)
+    sign = models.CharField(max_length=12)
 
     @property
     def data(self):
@@ -59,7 +59,7 @@ class Agency(models.Model, IdMixin):
     region = models.ForeignKey(Region, related_name='agencies')
     id = models.CharField(max_length=32, primary_key=True)
     name = models.CharField(max_length=64)
-    sign = models.CharField(max_length=8)
+    sign = models.CharField(max_length=12)
     url = models.URLField(max_length=256)
     timezone = models.CharField(max_length=32,
                                 choices=[(tz, tz) for tz in all_timezones])
@@ -88,7 +88,7 @@ class Route(models.Model, IdMixin, UpdateMixin):
     agency = models.ForeignKey(Agency, related_name='routes')
     id = models.CharField(max_length=32, primary_key=True)
     name = models.CharField(max_length=64)
-    sign = models.CharField(max_length=8)
+    sign = models.CharField(max_length=12)
     type = models.CharField(max_length=10,
                             choices=[(t, t) for t in route_types],
                             blank=True, null=True)
