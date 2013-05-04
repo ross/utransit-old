@@ -157,8 +157,9 @@ class RouteDetail(NoParsesMixin, generics.RetrieveAPIView):
 class PredictionSerializer(serializers.ModelSerializer):
 
     class Meta:
-        exclude = ('stop',)
+        exclude = ('id', 'stop',)
         model = Prediction
+
 
 class StopDetailSerializer(serializers.ModelSerializer):
     id = serializers.Field(source='get_id')
