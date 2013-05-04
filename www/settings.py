@@ -91,13 +91,13 @@ INSTALLED_APPS = (
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django.contrib.admin',
+    # our apps
+    'www.info',
+    'www.api',
     # third party apps
     'debug_toolbar',
     'rest_framework',
     'rest_framework.authtoken',
-    # our apps
-    'www.info',
-    'www.api',
 )
 
 LOGGING = {
