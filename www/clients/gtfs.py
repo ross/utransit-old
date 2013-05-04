@@ -44,7 +44,7 @@ class Gtfs(object):
                                 sign=route['route_short_name'],
                                 name=route['route_long_name'],
                                 type=route_types[int(route['route_type'])],
-                                url=route.get('route_url', None),
+                                site=route.get('route_url', None),
                                 color=route.get('route_color', None)))
 
         routes.sort(key=route_key)
@@ -122,5 +122,51 @@ class Gtfs(object):
 
         return (directions, stops)
 
+    def _lextran_predictions(self, route, stop):
+        url = 'http://realtime.lextran.com/InfoPoint/map/GetStopHtml.ashx'
+        params = {'stopId': 43}
+        headers = {}
+        {
+            'Accept': '*/*',
+            'Accept-Charset': 'ISO-8859-1,utf-8;q=0.7,*;q=0.3',
+            'Accept-Encoding': 'gzip,deflate,sdch',
+            'Accept-Language': 'en-US,en;q=0.8',
+            'Connection': 'keep-alive',
+            'Cookie': 'ASP.NET_SessionId=mpdeklznzcn5gzqmo2kks155; pyrocms=8l1nivPHBU5k7ABEoD%2FYQhQsfk%2BDHnct5NLFM0QgJJrfSNgfbjIethvsHMpmj9NZZgzepjCI63I5Nm8I5AYp%2BoVJKL%2BcpCRNWediMJ4AjMa4LhfGsbiIrA3NbsYUphKdpcj24SlKNar7tsYb1ufDnUBnAriRA5%2FUuRGy4E0oJDQL1h7seruFUhZjb8GVoJ0WUeZP3n8uBrWTy8xNNRSpyVB2z5KtsuJQ739eGrSRHq1KpSglj3fR5VKpRwIWFMXA%2F4NZf17ruzsJ6H0zrgzWBaECYCVHlFcTxJ%2FIcJaP1rrucRs2TeOfs4DGX%2FV1X%2FmvTrwIXIZpXwJwWNolc9TmgQ%3D%3D; __utma=92861568.1144423841.1367201976.1367201976.1367446315.2; __utmb=92861568.2.10.1367446315; __utmc=92861568; __utmz=92861568.1367201976.1.1.utmcsr=google|utmccn=(organic)|utmcmd=organic|utmctr=(not%20provided)',
+            'Host': 'realtime.lextran.com',
+            'Referer': 'http://realtime.lextran.com/InfoPoint/',
+            'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.31 (KHTML, like Gecko) Chrome/26.0.1410.63 Safari/537.31'
+        }
+        resp = requests.get(url, params=params, headers=headers)
+
+        with open('/tmp/run.html', 'wb') as fh:
+            fh.write(resp.content)
+        from pprint import pprint
+        pprint(resp.content)
+        #data = parse(resp.content)
+        #pprint(data)
+
+        return []
+
+    def _translink_predictions(self, route, stop):
+        print('\n\n%s\n\n' % stop.get_id())
+        url = 'http://api.translink.ca/rttiapi/v1/stops/{0}/estimates' \
+            .format(stop.get_id())
+        params = {'apiKey': 'AdByQ5Tv82YRhPWOcEHV',
+                  'timeframe': 1440}
+        headers = {'Accepts': 'application/json'}
+
+        resp = requests.get(url, params=params, headers=headers)
+
+        print(resp.content)
+
+        return []
+
     def predictions(self, route, stop):
+        return []
+        # TODO: better system for this
+        if stop.agency.id == 'lex:71':
+            return self._lextran_predictions(route, stop)
+        elif stop.agency.id == 'van:CMBC':
+            return self._translink_predictions(route, stop)
         return []

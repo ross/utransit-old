@@ -28,6 +28,18 @@ class BaseView(NoParsesMixin, APIView):
         return Response(self.get_data(request, *args, **kwargs))
 
 
+class URLField(serializers.Field):
+
+    def __init__(self, *args, **kwargs):
+        super(URLField, self).__init__(*args, **kwargs)
+        kwargs['read_only'] = True
+
+    def field_to_native(self, obj, field_name):
+        if field_name == 'url':
+            url = obj.get_absolute_url()
+            return self.context['request'].build_absolute_uri(url)
+        return super(URLField, self).field_to_native(obj, field_name)
+
 ## Root
 
 def api_root(request):
@@ -37,6 +49,7 @@ def api_root(request):
 ## Regions
 
 class RegionSerializer(serializers.ModelSerializer):
+    url = URLField()
 
     class Meta:
         model = Region
@@ -53,6 +66,7 @@ class RegionList(NoParsesMixin, generics.ListAPIView):
 
 class AgencySerializer(serializers.ModelSerializer):
     id = serializers.Field(source='get_id')
+    url = URLField()
 
     class Meta:
         exclude = ('provider',)
@@ -77,6 +91,7 @@ class RegionDetail(NoParsesMixin, generics.RetrieveAPIView):
 
 class RouteSerializer(serializers.ModelSerializer):
     id = serializers.Field(source='get_id')
+    url = URLField()
 
     class Meta:
         exclude = ('agency', 'order')
@@ -124,6 +139,14 @@ class StopSerializer(serializers.ModelSerializer):
             return {v.get_id(): self.to_native(v) for v in value()}
         return super(StopSerializer, self).field_to_native(obj, field_name)
 
+    def to_native(self, obj):
+        # since we have to add a route in to get a route specific stop
+        # we need to manually compute and add the url
+        ret = super(StopSerializer, self).to_native(obj)
+        url = obj.get_absolute_url(self.context['route_slug'])
+        ret['url'] = self.context['request'].build_absolute_uri(url)
+        return ret
+
     class Meta:
         exclude = ('agency',)
         model = Stop
@@ -146,13 +169,19 @@ class RouteDetail(NoParsesMixin, generics.RetrieveAPIView):
     model = Route
     serializer_class = RouteDetailSerializer
 
+    def get_serializer_context(self):
+        ret = super(RouteDetail, self).get_serializer_context()
+        # we need to pass our route id along to the stop serializers
+        ret['route_slug'] = self.object.get_id()
+        return ret
+
     def retrieve(self, request, region, agency, pk):
         agency = Agency.create_id(region, agency)
         self.object = get_object_or_404(Route, pk=Route.create_id(agency, pk))
         serializer = self.get_serializer(self.object)
         return Response(serializer.data)
 
-## Stop
+## Route Stop
 
 class PredictionSerializer(serializers.ModelSerializer):
 
@@ -185,6 +214,25 @@ class RouteStopDetail(NoParsesMixin, generics.RetrieveAPIView):
         self.object = stop
         serializer = self.get_serializer(stop)
         return Response(serializer.data)
+
+## Agency Stop
+
+class AgencyStopDetail(NoParsesMixin, generics.RetrieveAPIView):
+    '''
+    A Stop's details for a specific Route
+    '''
+    model = Stop
+    serializer_class = StopSerializer
+
+    def retrieve(self, request, region, agency, route, pk):
+        agency = Agency.create_id(region, agency)
+        stop = get_object_or_404(Stop, pk=Stop.create_id(agency, pk))
+        # TODO:
+        #stop._predictions = get_provider(stop.agency).predictions(route, stop)
+        self.object = stop
+        serializer = self.get_serializer(stop)
+        return Response(serializer.data)
+
 
 ## Nearby
 

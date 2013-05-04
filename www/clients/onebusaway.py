@@ -42,7 +42,7 @@ class OneBusAway(object):
             routes.append(Route(id=id, agency=agency, sign=route['shortName'],
                                 name=long_name,
                                 type=route_types[int(route['type'])],
-                                url=route['url'], color=color))
+                                site=route['url'], color=color))
 
         routes.sort(key=route_key)
         for i, route in enumerate(routes):

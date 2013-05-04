@@ -5,6 +5,7 @@
 from django.db import models
 from pycountry import languages
 from pytz import all_timezones
+from rest_framework.reverse import reverse
 
 
 class IdMixin(object):
@@ -37,6 +38,9 @@ class Region(models.Model):
                 'agencies': self.agencies.all()}
         return data
 
+    def get_absolute_url(self):
+        return reverse('region-detail', args=(self.id,))
+
     def __str__(self):
         return self.name
 
@@ -60,18 +64,21 @@ class Agency(models.Model, IdMixin):
     id = models.CharField(max_length=32, primary_key=True)
     name = models.CharField(max_length=64)
     sign = models.CharField(max_length=12)
-    url = models.URLField(max_length=256)
     timezone = models.CharField(max_length=32,
                                 choices=[(tz, tz) for tz in all_timezones])
     lang = models.CharField(max_length=2, blank=True, null=True,
                             choices=_all_languages())
+    site = models.URLField(max_length=256)
     phone = models.CharField(max_length=32, blank=True, null=True)
-    fare_url = models.URLField(max_length=256, blank=True, null=True)
+    fare_info = models.URLField(max_length=256, blank=True, null=True)
     provider = models.CharField(max_length=16, choices=_provider_choices)
 
     @classmethod
     def create_id(cls, region_id, id):
         return '{0}:{1}'.format(region_id, id)
+
+    def get_absolute_url(self):
+        return reverse('agency-detail', args=(self.region_id, self.get_id()))
 
     def __str__(self):
         return '{0} ({1})'.format(self.name, self.region_id)
@@ -92,13 +99,17 @@ class Route(models.Model, IdMixin, UpdateMixin):
     type = models.CharField(max_length=10,
                             choices=[(t, t) for t in route_types],
                             blank=True, null=True)
-    url = models.URLField(max_length=256, blank=True, null=True)
     color = models.CharField(max_length=len('#ffffff'), blank=True, null=True)
     order = models.IntegerField()
 
     @classmethod
     def create_id(cls, agency_id, id):
         return '{0}:{1}'.format(agency_id, id)
+
+    def get_absolute_url(self):
+        return reverse('route-detail', args=(self.agency.region_id,
+                                             self.agency.get_id(),
+                                             self.get_id()))
 
     def get_stops(self):
         stops = []
@@ -152,6 +163,16 @@ class Stop(models.Model, IdMixin, UpdateMixin):
     @classmethod
     def create_id(cls, agency_id, id):
         return '{0}:{1}'.format(agency_id, id)
+
+    def get_absolute_url(self, route_slug=None):
+        if route_slug:
+            return reverse('stop-route-detail', args=(self.agency.region_id,
+                                                      self.agency.get_id(),
+                                                      route_slug,
+                                                      self.get_id()))
+        return reverse('stop-detail', args=(self.agency.region_id,
+                                            self.agency.get_id(),
+                                            self.get_id()))
 
     def get_predictions(self):
         return self._predictions
