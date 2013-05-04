@@ -77,8 +77,13 @@ class Agency(models.Model, IdMixin):
     def create_id(cls, region_id, id):
         return '{0}:{1}'.format(region_id, id)
 
+    @classmethod
+    def get_region_id(cls, agency_id):
+        return agency_id.split(':')[0]
+
     def get_absolute_url(self):
-        return reverse('agency-detail', args=(self.region_id, self.get_id()))
+        return reverse('agency-detail',
+                       args=(self.get_region_id(self.id), self.get_id()))
 
     def __str__(self):
         return '{0} ({1})'.format(self.name, self.region_id)
@@ -106,10 +111,19 @@ class Route(models.Model, IdMixin, UpdateMixin):
     def create_id(cls, agency_id, id):
         return '{0}:{1}'.format(agency_id, id)
 
+    @classmethod
+    def get_region_id(cls, route_id):
+        return route_id.split(':')[0]
+
+    @classmethod
+    def get_agency_id(cls, route_id):
+        return route_id.split(':')[1]
+
     def get_absolute_url(self):
-        return reverse('route-detail', args=(self.agency.region_id,
-                                             self.agency.get_id(),
-                                             self.get_id()))
+        return reverse('route-detail',
+                       args=(self.get_region_id(self.id),
+                             self.get_agency_id(self.id),
+                             self.get_id()))
 
     def get_stops(self):
         stops = []
@@ -164,14 +178,22 @@ class Stop(models.Model, IdMixin, UpdateMixin):
     def create_id(cls, agency_id, id):
         return '{0}:{1}'.format(agency_id, id)
 
+    @classmethod
+    def get_region_id(cls, stop_id):
+        return stop_id.split(':')[0]
+
+    @classmethod
+    def get_agency_id(cls, stop_id):
+        return stop_id.split(':')[1]
+
     def get_absolute_url(self, route_slug=None):
         if route_slug:
-            return reverse('stop-route-detail', args=(self.agency.region_id,
-                                                      self.agency.get_id(),
-                                                      route_slug,
-                                                      self.get_id()))
-        return reverse('stop-detail', args=(self.agency.region_id,
-                                            self.agency.get_id(),
+            return reverse('stop-route-detail',
+                           args=(self.get_region_id(self.id),
+                                 self.get_agency_id(self.id),
+                                 route_slug, self.get_id()))
+        return reverse('stop-detail', args=(self.get_region_id(self.id),
+                                            self.get_agency_id(self.id),
                                             self.get_id()))
 
     def get_predictions(self):

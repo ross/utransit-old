@@ -130,19 +130,20 @@ class DirectionSerializer(serializers.ModelSerializer):
         model = Direction
 
 
-class StopSerializer(serializers.ModelSerializer):
+class RouteStopSerializer(serializers.ModelSerializer):
     id = serializers.Field(source='get_id')
 
     def field_to_native(self, obj, field_name):
         if field_name == 'stops':
             value = getattr(obj, self.source)
             return {v.get_id(): self.to_native(v) for v in value()}
-        return super(StopSerializer, self).field_to_native(obj, field_name)
+        return super(RouteStopSerializer, self).field_to_native(obj,
+                                                                field_name)
 
     def to_native(self, obj):
         # since we have to add a route in to get a route specific stop
         # we need to manually compute and add the url
-        ret = super(StopSerializer, self).to_native(obj)
+        ret = super(RouteStopSerializer, self).to_native(obj)
         url = obj.get_absolute_url(self.context['route_slug'])
         ret['url'] = self.context['request'].build_absolute_uri(url)
         return ret
@@ -155,7 +156,7 @@ class StopSerializer(serializers.ModelSerializer):
 class RouteDetailSerializer(serializers.ModelSerializer):
     id = serializers.Field(source='get_id')
     directions = DirectionSerializer(many=True)
-    stops = StopSerializer(many=True, source='get_stops')
+    stops = RouteStopSerializer(many=True, source='get_stops')
 
     class Meta:
         exclude = ('agency', 'order')
@@ -183,7 +184,7 @@ class RouteDetail(NoParsesMixin, generics.RetrieveAPIView):
 
 ## Route Stop
 
-class PredictionSerializer(serializers.ModelSerializer):
+class RoutePredictionSerializer(serializers.ModelSerializer):
 
     class Meta:
         exclude = ('id', 'stop',)
@@ -192,7 +193,8 @@ class PredictionSerializer(serializers.ModelSerializer):
 
 class StopDetailSerializer(serializers.ModelSerializer):
     id = serializers.Field(source='get_id')
-    predictions = PredictionSerializer(many=True, source='get_predictions')
+    predictions = RoutePredictionSerializer(many=True,
+                                            source='get_predictions')
 
     class Meta:
         exclude = ('agency',)
@@ -217,18 +219,34 @@ class RouteStopDetail(NoParsesMixin, generics.RetrieveAPIView):
 
 ## Agency Stop
 
+class AgencyPredictionSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        exclude = ('id', 'stop',)
+        model = Prediction
+
+
+class AgencyStopSerializer(serializers.ModelSerializer):
+    id = serializers.Field(source='get_id')
+    predictions = AgencyPredictionSerializer(many=True,
+                                             source='get_predictions')
+
+    class Meta:
+        model = Stop
+
+
 class AgencyStopDetail(NoParsesMixin, generics.RetrieveAPIView):
     '''
     A Stop's details for a specific Route
     '''
     model = Stop
-    serializer_class = StopSerializer
+    serializer_class = AgencyStopSerializer
 
-    def retrieve(self, request, region, agency, route, pk):
+    def retrieve(self, request, region, agency, pk):
         agency = Agency.create_id(region, agency)
         stop = get_object_or_404(Stop, pk=Stop.create_id(agency, pk))
-        # TODO:
-        #stop._predictions = get_provider(stop.agency).predictions(route, stop)
+        # TODO: lookup predictions for stop
+        stop._predictions = []
         self.object = stop
         serializer = self.get_serializer(stop)
         return Response(serializer.data)
