@@ -2,6 +2,7 @@
 #
 #
 
+from collections import defaultdict
 from django.http import Http404, HttpResponseRedirect
 from django.shortcuts import get_object_or_404
 from math import cos, radians
@@ -260,22 +261,79 @@ class NearbyStopSerializer(serializers.ModelSerializer):
     region = serializers.Field(source='agency.region.id')
     distance = serializers.Field()
 
+    def to_native(self, obj):
+        # since we have to add a route in to get a route specific stop
+        # we need to manually compute and add the url
+        ret = super(NearbyStopSerializer, self).to_native(obj)
+        url = obj.get_absolute_url()
+        ret['url'] = self.context['request'].build_absolute_uri(url)
+        return ret
+
     class Meta:
         model = Stop
 
 
-class NearbyStopList(NoParsesMixin, generics.ListAPIView):
+class NearbyRegionSerializer(serializers.ModelSerializer):
+    url = URLField()
+
+    def field_to_native(self, obj, field_name):
+        if field_name == 'regions':
+            value = getattr(obj, field_name)
+            return {v.id: self.to_native(v) for v in value()}
+        return super(NearbyRegionSerializer, self).field_to_native(obj,
+                                                                   field_name)
+
+    class Meta:
+        model = Region
+
+
+class NearbyAgencySerializer(serializers.ModelSerializer):
+    id = serializers.Field(source='get_id')
+    url = URLField()
+
+    def field_to_native(self, obj, field_name):
+        if field_name == 'agencies':
+            value = getattr(obj, field_name)
+            agencies = defaultdict(dict)
+            for v in value():
+                agencies[v.region_id][v.get_id()] = self.to_native(v)
+            return agencies
+        return super(NearbyAgencySerializer, self).field_to_native(obj,
+                                                                   field_name)
+
+    class Meta:
+        model = Agency
+
+
+class NearbySerializer(serializers.Serializer):
+    stops = NearbyStopSerializer(many=True)
+    regions = NearbyRegionSerializer(many=True)
+    agencies = NearbyAgencySerializer(many=True)
+
+
+class NearbyDetail(NoParsesMixin, generics.RetrieveAPIView):
     '''
     A list of nearby Stops
     '''
     model = Stop
-    serializer_class = NearbyStopSerializer
+    serializer_class = NearbySerializer
 
-    def list(self, request, *args, **kwargs):
+    def regions(self):
+        agency_ids = [s.agency_id for s in self.stops]
+        return Region.objects.filter(agencies__in=agency_ids)
+
+    def agencies(self):
+        agency_ids = [s.agency_id for s in self.stops]
+        return Agency.objects.filter(id__in=agency_ids)
+
+    def retrieve(self, request, *args, **kwargs):
         try:
             lat = float(request.GET['lat'])
             lon = float(request.GET['lon'])
             radius = float(request.GET.get('radius', 500.0))
+            if radius < 0 or 5000 < radius:
+                # TODO: bad request, invalid param
+                raise Exception('invalid radius')
         except KeyError:
             # TODO: bad request, missing param
             raise
@@ -307,6 +365,10 @@ select * from (select s.*, 6378100 * 2 *
                                  [lat, lat, lon, lat_min, lat_max,
                                   lon_min, lon_max, radius])
 
-        self.object_list = stops
-        serializer = self.get_serializer(self.object_list, many=True)
+        # we'll use ourselves as the object, listing it to prevent running the
+        # query twice
+        self.stops = list(stops)
+        self.object = self
+
+        serializer = self.get_serializer(self.object)
         return Response(serializer.data)
