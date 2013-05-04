@@ -80,13 +80,39 @@ class OneBusAway(object):
 
         return (directions, stops)
 
+    def _siri_predictions(self, route, stop):
+        url = 'http://bustime.mta.info/api/siri/stop-monitoring.json' \
+            .format(self.url, stop.get_id())
+
+        # shares api keys with onebus
+        params = dict(self.params)
+        params['MonitoringRef'] =  stop.get_id().split('_')[1]
+        params['LineRef'] = route.get_id().split('_')[1]
+
+        predictions = []
+
+        resp = requests.get(url, params=params)
+
+        data = resp.json()['Siri']['ServiceDelivery']
+        data = data['StopMonitoringDelivery'][0]
+
+        for visit in data['MonitoredStopVisit']:
+            visit = visit['MonitoredVehicleJourney']['MonitoredCall']
+            away = visit['Extensions']['Distances']['DistanceFromCall']
+            predictions.append(Prediction(stop=stop, away=int(away),
+                                          unit='meters'))
+
+        return predictions
+
+
     def predictions(self, route, stop):
+        if self.agency.id.startswith('nyc:MTA'):
+            return self._siri_predictions(route, stop)
+
         url = '{0}/arrivals-and-departures-for-stop/{1}.json' \
             .format(self.url, stop.get_id())
 
         predictions = []
-        if self.agency.id.startswith('nyc:MTA'):
-            return predictions
 
         resp = requests.get(url, params=self.params)
 
@@ -99,6 +125,7 @@ class OneBusAway(object):
         for arrival in data['arrivalsAndDepartures']:
             away = (arrival['predictedArrivalTime'] - current_time) / 1000.0
             if arrival['routeId'] == route_id and away >= 0:
-                predictions.append(Prediction(stop=stop, away=int(away)))
+                predictions.append(Prediction(stop=stop, away=int(away),
+                                              unit='seconds'))
 
         return predictions

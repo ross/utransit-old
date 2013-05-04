@@ -77,6 +77,7 @@ class NextBus(object):
             for prediction in preds['direction']['prediction']:
                 predictions.append(
                     Prediction(stop=stop, away=prediction['@seconds'],
-                               departure=prediction['@isDeparture']))
+                               departure=prediction['@isDeparture'],
+                               unit='seconds'))
 
         return predictions

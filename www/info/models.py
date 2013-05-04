@@ -176,11 +176,15 @@ class StopDirection(models.Model, IdMixin):
         unique_together = (('stop', 'direction'),)
 
 
+prediction_units = ('seconds', 'meters')
+
 
 class Prediction(models.Model):
     # TODO: no need to create a table for these, they won't be persisted
     stop = models.ForeignKey(Stop, related_name='predictions')
     away = models.IntegerField()
+    unit = models.CharField(max_length=7,
+                            choices=[(u, u) for u in prediction_units])
     departure = models.NullBooleanField(blank=True, null=True)
 
     class Meta:

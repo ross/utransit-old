@@ -129,7 +129,8 @@ class Bart:
                         away = int(prediction['minutes']) * 60
                     except ValueError:
                         continue
-                    predictions.append(Prediction(stop=stop, away=away))
+                    predictions.append(Prediction(stop=stop, away=away,
+                                                  unit='seconds'))
                 return predictions
 
         return []
