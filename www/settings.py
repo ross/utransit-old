@@ -129,7 +129,7 @@ LOGGING = {
     'loggers': {
         'django.db.backends': {
             # comment out to see db queries
-            'level': 'INFO',
+            #'level': 'INFO',
         },
     },
 }

@@ -3,6 +3,7 @@
 #
 
 from collections import defaultdict
+from django.db.models.query import prefetch_related_objects
 from django.http import Http404, HttpResponseRedirect
 from django.shortcuts import get_object_or_404
 from math import cos, radians
@@ -255,11 +256,20 @@ class AgencyStopDetail(NoParsesMixin, generics.RetrieveAPIView):
 
 ## Nearby
 
+class NearbyDirectionSerializer(serializers.ModelSerializer):
+    route = serializers.Field(source='route.get_id')
+
+    class Meta:
+        exclude = ('id', 'stops',)
+        model = Direction
+
 class NearbyStopSerializer(serializers.ModelSerializer):
     id = serializers.Field(source='get_id')
     agency = serializers.Field(source='agency.get_id')
     region = serializers.Field(source='agency.region.id')
+    directions = NearbyDirectionSerializer(many=True)
     distance = serializers.Field()
+    # TODO: routes
 
     def to_native(self, obj):
         # since we have to add a route in to get a route specific stop
@@ -305,10 +315,31 @@ class NearbyAgencySerializer(serializers.ModelSerializer):
         model = Agency
 
 
+class NearbyRouteSerializer(serializers.ModelSerializer):
+    id = serializers.Field(source='get_id')
+    url = URLField()
+
+    def field_to_native(self, obj, field_name):
+        if field_name == 'routes':
+            value = getattr(obj, field_name)
+            routes = defaultdict(lambda : defaultdict(dict))
+            for v in value():
+                region_id = Route.get_region_id(v.id)
+                agency_id = Route.get_agency_id(v.id)
+                routes[region_id][agency_id][v.get_id()] = self.to_native(v)
+            return routes
+        return super(NearbyAgencySerializer, self).field_to_native(obj,
+                                                                   field_name)
+
+    class Meta:
+        model = Route
+
+
 class NearbySerializer(serializers.Serializer):
     stops = NearbyStopSerializer(many=True)
     regions = NearbyRegionSerializer(many=True)
     agencies = NearbyAgencySerializer(many=True)
+    routes = NearbyRouteSerializer(many=True)
 
 
 class NearbyDetail(NoParsesMixin, generics.RetrieveAPIView):
@@ -319,12 +350,19 @@ class NearbyDetail(NoParsesMixin, generics.RetrieveAPIView):
     serializer_class = NearbySerializer
 
     def regions(self):
-        agency_ids = [s.agency_id for s in self.stops]
-        return Region.objects.filter(agencies__in=agency_ids)
+        return [s.agency.region for s in self.stops]
 
     def agencies(self):
-        agency_ids = [s.agency_id for s in self.stops]
-        return Agency.objects.filter(id__in=agency_ids)
+        return [s.agency for s in self.stops]
+
+    def routes(self):
+        routes = {}
+        for stop in self.stops:
+            for direction in stop.directions.all():
+                route = direction.route
+                routes[route.id] = direction.route
+
+        return routes.values()
 
     def retrieve(self, request, *args, **kwargs):
         try:
@@ -367,7 +405,10 @@ select * from (select s.*, 6378100 * 2 *
 
         # we'll use ourselves as the object, listing it to prevent running the
         # query twice
-        self.stops = list(stops)
+        stops = list(stops)
+        prefetch_related_objects(stops, ['agency', 'agency__region',
+                                         'directions', 'directions__route'])
+        self.stops = stops
         self.object = self
 
         serializer = self.get_serializer(self.object)

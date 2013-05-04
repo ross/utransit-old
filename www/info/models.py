@@ -120,7 +120,6 @@ class Route(models.Model, IdMixin, UpdateMixin):
         return route_id.split(':')[1]
 
     def get_absolute_url(self):
-        print('\n\n%s\n\n' % self.id)
         return reverse('route-detail',
                        args=(self.get_region_id(self.id),
                              self.get_agency_id(self.id),
