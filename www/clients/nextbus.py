@@ -11,10 +11,14 @@ import requests
 class NextBus(object):
     url = 'http://webservices.nextbus.com/service/publicXMLFeed'
 
-    def __init__(self):
+    def __init__(self, agency):
+        self.agency = agency
+
         self.session = RateLimitedSession()
 
-    def routes(self, agency):
+    def routes(self):
+        agency = self.agency
+
         # use external id
         params = {'command': 'routeList', 'a': agency.get_id()}
 

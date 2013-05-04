@@ -31,22 +31,22 @@ urlpatterns += patterns('www.api.views',
                         url(r'^api/regions/$',
                             cache_on_auth(60 * 60)(RegionList.as_view()),
                             name='regions-list'),
-                        url(r'^api/regions/(?P<pk>[\w-]+)/$',
+                        url(r'^api/regions/(?P<pk>[\w\-]+)/$',
                             cache_on_auth(60 * 60)(RegionDetail.as_view()),
                             name='region-detail'),
-                        url(r'^api/regions/(?P<region>[\w-]+)'
-                            r'/agencies/(?P<pk>[\w-]+)/$',
+                        url(r'^api/regions/(?P<region>[\w\-]+)'
+                            r'/agencies/(?P<pk>[\w\- ]+)/$',
                             cache_on_auth(60 * 60)(AgencyDetail.as_view()),
                             name='agency-detail'),
-                        url(r'^api/regions/(?P<region>[\w-]+)'
-                            r'/agencies/(?P<agency>[\w-]+)'
-                            r'/routes/(?P<pk>[\w-]+)/$',
+                        url(r'^api/regions/(?P<region>[\w\-]+)'
+                            r'/agencies/(?P<agency>[\w\- ]+)'
+                            r'/routes/(?P<pk>[\w\- ]+)/$',
                             cache_on_auth(60 * 5)(RouteDetail.as_view()),
                             name='route-detail'),
-                        url(r'^api/regions/(?P<region>[\w-]+)'
-                            r'/agencies/(?P<agency>[\w-]+)'
-                            r'/routes/(?P<route>[\w-]+)'
-                            r'/stops/(?P<pk>[\w-]+)/$',
+                        url(r'^api/regions/(?P<region>[\w\-]+)'
+                            r'/agencies/(?P<agency>[\w\- ]+)'
+                            r'/routes/(?P<route>[\w\- ]+)'
+                            r'/stops/(?P<pk>[\w\- ]+)/$',
                             RouteStopDetail.as_view(), name='stop-detail'),
 
                         url(r'^api/nearby/',

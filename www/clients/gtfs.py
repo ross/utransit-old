@@ -6,12 +6,16 @@ from collections import defaultdict
 from csv import DictReader
 from os.path import join
 from www.info.models import Direction, Route, Stop, route_types, stop_types
+from xmltodict import parse
 from .utils import route_key
+import requests
 
 
 class Gtfs(object):
 
-    def __init__(self):
+    def __init__(self, agency):
+        self.agency = agency
+
         self._cached_routes = None
         self._cached_trips = None
         self._cached_stops = None
@@ -24,8 +28,10 @@ class Gtfs(object):
 
         return self._cached_routes
 
-    def routes(self, agency):
+    def routes(self):
         routes = []
+
+        agency = self.agency
 
         aid = agency.get_id()
         for route in self._routes(join('data', agency.id)):

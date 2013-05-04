@@ -14,12 +14,16 @@ class Bart:
     url = 'http://api.bart.gov/api/';
     params = {'key': 'MW9S-E7SL-26DU-VV8V'};
 
-    def __init__(self):
+    def __init__(self, agency):
+        self.agency = agency
+
         self.session = RateLimitedSession()
 
         self._cached_all_stops = None
 
-    def routes(self, agency):
+    def routes(self):
+        agency = self.agency
+
         url = '{0}{1}'.format(self.url, 'route.aspx')
         params = dict(self.params)
         params['cmd'] = 'routes'
@@ -42,7 +46,7 @@ class Bart:
 
         return list(routes.values())
 
-    def _all_stops(self, agency):
+    def _all_stops(self):
         if self._cached_all_stops:
             return self._cached_all_stops
 
@@ -56,7 +60,7 @@ class Bart:
         stops = {}
         for station in data['root']['stations']['station']:
             # don't care about having "real" ids here
-            stop = Stop(agency=agency, id=station['abbr'],
+            stop = Stop(agency=self.agency, id=station['abbr'],
                         name=station['name'], lat=station['gtfs_latitude'],
                         lon=station['gtfs_longitude'], type=stop_types[1])
             stops[stop.id] = stop
@@ -77,7 +81,7 @@ class Bart:
         # list of stations this route passes
         abbrs = data['config']['station']
         # will block if we don't already have an answer
-        all_stops = self._all_stops(route.agency)
+        all_stops = self._all_stops()
         stop_ids = []
         stops = {}
         # origin

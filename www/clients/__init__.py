@@ -13,15 +13,16 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def get_provider(id):
+def get_provider(agency):
+    id = agency.provider
     if id == 'OneBusAway':
-        return OneBusAway()
+        return OneBusAway(agency)
     elif id == 'NextBus':
-        return NextBus()
+        return NextBus(agency)
     elif id == 'Bart':
-        return Bart()
+        return Bart(agency)
     elif id == 'GTFS':
-        return Gtfs()
+        return Gtfs(agency)
     raise Exception('unknown provider')
 
 
@@ -34,14 +35,14 @@ def sync_agency(agency):
         transaction.rollback()
 
 def _sync_agency(agency):
-    provider = get_provider(agency.provider)
+    provider = get_provider(agency)
 
     existing_routes = {r.id for r in agency.routes.all()}
     logger.info('agency.id=%s', agency.id)
     logger.debug('    existing routes=%s', existing_routes)
     all_directions = []
     all_stops = {}
-    for route in provider.routes(agency):
+    for route in provider.routes():
         logger.info('    route.id=%s', route.id)
         existing_routes.discard(route.id)
         try:
@@ -67,7 +68,7 @@ def _sync_agency(agency):
         logger.info('    deleting route.id=%s', old)
         Route.objects.get(pk=old).delete()
 
-    existing_stops = {s.id for s in route.agency.stops.all()}
+    existing_stops = {s.id for s in agency.stops.all()}
     logger.debug('    existing stops=%s', existing_stops)
     for stop in all_stops.values():
         logger.info('    stop.id=%s', stop.id)

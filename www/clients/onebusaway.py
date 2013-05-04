@@ -9,15 +9,28 @@ import requests
 
 
 class OneBusAway(object):
-    params = {'key': 'e5ca6a2f-d074-4657-879e-6b572b3364bd'}
 
-    def __init__(self):
+    def __init__(self, agency):
+        self.agency = agency
+
         self.session = RateLimitedSession()
 
-    def routes(self, agency):
-        url = 'http://api.onebusaway.org/api/where/routes-for-agency/' \
-            '{0}.json'.format(agency.get_id())
+        aid = agency.get_id()
+        if aid == 'DDOT':
+            self.url = 'http://ddot-beta.herokuapp.com/api/api/where'
+            self.params = {'key': 'BETA'}
+        elif aid in ('MTA NYCT', 'MTABC'):
+            self.url = 'http://bustime.mta.info/api/where'
+            self.params = {'key': 'a00d08e5-245d-4b58-8eee-e08aa7510e82'}
+        else:
+            self.url = 'http://api.onebusaway.org/api/where'
+            self.params = {'key': 'e5ca6a2f-d074-4657-879e-6b572b3364bd'}
 
+    def routes(self):
+        agency = self.agency
+
+        url = '{0}/routes-for-agency/{1}.json'.format(self.url,
+                                                      agency.get_id())
         resp = self.session.get(url, params=self.params)
 
         routes = []
@@ -38,8 +51,7 @@ class OneBusAway(object):
         return routes
 
     def stops(self, route):
-        url = 'http://api.onebusaway.org/api/where/stops-for-route/' \
-            '{0}.json'.format(route.get_id())
+        url = '{0}/stops-for-route/{1}.json'.format(self.url, route.get_id())
         params = dict(self.params)
         params['version'] = 2
 
@@ -69,16 +81,21 @@ class OneBusAway(object):
         return (directions, stops)
 
     def predictions(self, route, stop):
-        url = 'http://api.onebusaway.org/api/where/' \
-            'arrivals-and-departures-for-stop/{0}.json'.format(stop.get_id())
+        url = '{0}/arrivals-and-departures-for-stop/{1}.json' \
+            .format(self.url, stop.get_id())
+
+        predictions = []
+        if self.agency.id.startswith('nyc:MTA'):
+            return predictions
 
         resp = requests.get(url, params=self.params)
 
         data = resp.json()
         current_time = data['currentTime']
         data = data['data']
+        if 'entry' in data:
+            data = data['entry']
         route_id = route.get_id()
-        predictions = []
         for arrival in data['arrivalsAndDepartures']:
             away = (arrival['predictedArrivalTime'] - current_time) / 1000.0
             if arrival['routeId'] == route_id and away >= 0:
