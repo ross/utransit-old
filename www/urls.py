@@ -40,7 +40,7 @@ urlpatterns += patterns('www.api.views',
                             name='agency-detail'),
                         url(r'^api/regions/(?P<region>[\w\-]+)'
                             r'/agencies/(?P<agency>[\w\- ]+)'
-                            r'/routes/(?P<pk>[\w\- ]+)/$',
+                            r'/routes/(?P<pk>[\w\-\+ ]+)/$',
                             cache_on_auth(60 * 5)(RouteDetail.as_view()),
                             name='route-detail'),
                         url(r'^api/regions/(?P<region>[\w\-]+)'
@@ -50,7 +50,7 @@ urlpatterns += patterns('www.api.views',
                             name='stop-detail'),
                         url(r'^api/regions/(?P<region>[\w\-]+)'
                             r'/agencies/(?P<agency>[\w\- ]+)'
-                            r'/routes/(?P<route>[\w\- ]+)'
+                            r'/routes/(?P<route>[\w\-\+ ]+)'
                             r'/stops/(?P<pk>[\w\- ]+)/$',
                             RouteStopDetail.as_view(),
                             name='stop-route-detail'),

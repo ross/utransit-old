@@ -43,10 +43,11 @@ class NextBus(object):
         stops = {}
         for stop in data['stop']:
             tag = stop['@tag']
+            code = stop.get('@stopId', None)
             id = Stop.create_id(route.agency.id, tag)
             stop = Stop(agency=route.agency, id=id,
-                        name=stop['@title'], code=stop['@stopId'],
-                        lat=stop['@lat'], lon=stop['@lon'])
+                        name=stop['@title'], code=code, lat=stop['@lat'],
+                        lon=stop['@lon'])
             stops[stop.id] = stop
         directions = []
         ds = data['direction']
@@ -65,9 +66,11 @@ class NextBus(object):
 
         return (directions, stops)
 
-    def predictions(self, route, stop):
+    def predictions(self, stop, route=None):
         params = {'command': 'predictions', 'a': stop.agency.get_id(),
-                  'r': route.get_id(), 's': stop.get_id()}
+                  's': stop.get_id()}
+        if route:
+            params['r'] = route.get_id()
 
         resp = requests.get(self.url, params=params)
 

@@ -162,7 +162,7 @@ class Gtfs(object):
 
         return []
 
-    def predictions(self, route, stop):
+    def predictions(self, stop, route=None):
         return []
         # TODO: better system for this
         if stop.agency.id == 'lex:71':

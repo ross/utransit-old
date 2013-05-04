@@ -111,8 +111,11 @@ class Bart:
 
         return ([direction_a, direction_b], stops)
 
-    def predictions(self, route, stop):
+    def predictions(self, stop, route=None):
         abbr, dest = stop.get_id().split('-')
+
+        if route is None:
+            dest = None
 
         url = '{0}{1}'.format(self.url, 'etd.aspx')
         params = dict(self.params)
@@ -121,8 +124,7 @@ class Bart:
         resp = requests.get(url, params=params)
 
         for direction in parse(resp.content)['root']['station']['etd']:
-            print(direction['abbreviation'], dest)
-            if direction['abbreviation'] == dest:
+            if not dest or direction['abbreviation'] == dest:
                 predictions = []
                 for prediction in direction['estimate']:
                     try:

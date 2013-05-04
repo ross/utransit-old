@@ -212,7 +212,7 @@ class RouteStopDetail(NoParsesMixin, generics.RetrieveAPIView):
         agency = Agency.create_id(region, agency)
         route = get_object_or_404(Route, pk=Route.create_id(agency, route))
         stop = get_object_or_404(Stop, pk=Stop.create_id(agency, pk))
-        stop._predictions = get_provider(stop.agency).predictions(route, stop)
+        stop._predictions = get_provider(stop.agency).predictions(stop, route)
         self.object = stop
         serializer = self.get_serializer(stop)
         return Response(serializer.data)
