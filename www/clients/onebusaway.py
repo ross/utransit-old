@@ -80,15 +80,41 @@ class OneBusAway(object):
 
         return (directions, stops)
 
-    def _siri_predictions(self, stop, route=None):
+    def _siri_stop_predictions(self, stop):
         url = 'http://bustime.mta.info/api/siri/stop-monitoring.json' \
             .format(self.url, stop.get_id())
 
         # shares api keys with onebus
         params = dict(self.params)
         params['MonitoringRef'] =  stop.get_id().split('_')[1]
-        if route:
-            params['LineRef'] = route.get_id().split('_')[1]
+
+        predictions = []
+
+        resp = requests.get(url, params=params)
+
+        data = resp.json()['Siri']['ServiceDelivery']
+        data = data['StopMonitoringDelivery'][0]
+
+        for visit in data['MonitoredStopVisit']:
+            visit = visit['MonitoredVehicleJourney']
+            did = Direction.create_id(Route.create_id(stop.agency.id,
+                                                      visit['LineRef']),
+                                      visit['DirectionRef'])
+            visit = visit['MonitoredCall']
+            away = visit['Extensions']['Distances']['DistanceFromCall']
+            predictions.append(Prediction(stop=stop, away=int(away),
+                                          unit='meters', direction_id=did))
+
+        return predictions
+
+    def _siri_route_predictions(self, stop, route):
+        url = 'http://bustime.mta.info/api/siri/stop-monitoring.json' \
+            .format(self.url, stop.get_id())
+
+        # shares api keys with onebus
+        params = dict(self.params)
+        params['MonitoringRef'] =  stop.get_id().split('_')[1]
+        params['LineRef'] = route.get_id().split('_')[1]
 
         predictions = []
 
@@ -104,6 +130,11 @@ class OneBusAway(object):
                                           unit='meters'))
 
         return predictions
+
+    def _siri_predictions(self, stop, route=None):
+        if route:
+            return self._siri_route_predictions(stop, route)
+        return self._siri_stop_predictions(stop)
 
     def _stop_predictions(self, stop):
         url = '{0}/arrivals-and-departures-for-stop/{1}.json' \
