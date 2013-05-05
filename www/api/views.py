@@ -178,8 +178,12 @@ class RouteDetail(NoParsesMixin, generics.RetrieveAPIView):
         return ret
 
     def retrieve(self, request, region, agency, pk):
-        agency = Agency.create_id(region, agency)
-        self.object = get_object_or_404(Route, pk=Route.create_id(agency, pk))
+        try:
+            self.object = Route.objects \
+                .prefetch_related('directions', 'directions__stops') \
+                .get(pk=Route.create_id(Agency.create_id(region, agency), pk))
+        except Route.DoesNotExist:
+            raise Http404('No Route matches the given query.')
         serializer = self.get_serializer(self.object)
         return Response(serializer.data)
 
@@ -210,9 +214,13 @@ class RouteStopDetail(NoParsesMixin, generics.RetrieveAPIView):
     serializer_class = StopDetailSerializer
 
     def retrieve(self, request, region, agency, route, pk):
-        agency = Agency.create_id(region, agency)
-        route = get_object_or_404(Route, pk=Route.create_id(agency, route))
-        stop = get_object_or_404(Stop, pk=Stop.create_id(agency, pk))
+        try:
+            stop = Stop.objects.select_related('agency') \
+                .get(pk=Stop.create_id(Agency.create_id(region, agency), pk))
+        except Stop.DoesNotExist:
+            raise Http404('No Route matches the given query.')
+        agency = stop.agency
+        route = get_object_or_404(Route, pk=Route.create_id(agency.id, route))
         stop._predictions = get_provider(stop.agency).predictions(stop, route)
         self.object = stop
         serializer = self.get_serializer(stop)
