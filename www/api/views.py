@@ -192,7 +192,7 @@ class RouteDetail(NoParsesMixin, generics.RetrieveAPIView):
 class RoutePredictionSerializer(serializers.ModelSerializer):
 
     class Meta:
-        exclude = ('id', 'route', 'stop')
+        exclude = ('id', 'route', 'stop', 'direction')
         model = Prediction
 
 
@@ -292,9 +292,7 @@ class AgencyStopDetail(NoParsesMixin, generics.RetrieveAPIView):
             raise Http404('No Route matches the given query.')
         agency = stop.agency
         predictions = get_provider(stop.agency).predictions(stop)
-        prefetch_related_objects(predictions, ['direction',
-                                               'direction__route',
-                                               'direction__route__directions'])
+        prefetch_related_objects(predictions, ['direction__route__directions'])
         stop._predictions = predictions
 
         routes = {}

@@ -105,11 +105,35 @@ class OneBusAway(object):
 
         return predictions
 
+    def _stop_predictions(self, stop):
+        url = '{0}/arrivals-and-departures-for-stop/{1}.json' \
+            .format(self.url, stop.get_id())
 
-    def predictions(self, stop, route=None):
-        if self.agency.id.startswith('nyc:MTA'):
-            return self._siri_predictions(stop, route)
+        resp = requests.get(url, params=self.params)
 
+        dirs = {}
+
+        data = resp.json()
+        current_time = data['currentTime']
+        data = data['data']
+        if 'entry' in data:
+            data = data['entry']
+        predictions = []
+        for arrival in data['arrivalsAndDepartures']:
+            away = (arrival['predictedArrivalTime'] - current_time) / 1000.0
+            if away >= 0:
+                dir_name = arrival['tripHeadsign']
+                if dir_name not in dirs:
+                    dirs[dir_name] = Direction.objects.get(name=dir_name).id
+                did = dirs[dir_name]
+                predictions.append(Prediction(stop=stop, away=int(away),
+                                              unit='seconds',
+                                              direction_id=did))
+
+        #predictions.sort(key=attrgetter('away'))
+        return predictions
+
+    def _route_predictions(self, stop, route):
         url = '{0}/arrivals-and-departures-for-stop/{1}.json' \
             .format(self.url, stop.get_id())
 
@@ -122,11 +146,19 @@ class OneBusAway(object):
         data = data['data']
         if 'entry' in data:
             data = data['entry']
-        route_id = route.get_id() if route else None
+        route_id = route.get_id()
         for arrival in data['arrivalsAndDepartures']:
             away = (arrival['predictedArrivalTime'] - current_time) / 1000.0
-            if (not route_id or arrival['routeId'] == route_id) and away >= 0:
+            if arrival['routeId'] == route_id and away >= 0:
                 predictions.append(Prediction(stop=stop, away=int(away),
                                               unit='seconds'))
 
         return predictions
+
+    def predictions(self, stop, route=None):
+        if self.agency.id.startswith('nyc:MTA'):
+            return self._siri_predictions(stop, route)
+
+        if route:
+            return self._route_predictions(stop, route)
+        return self._stop_predictions(stop)

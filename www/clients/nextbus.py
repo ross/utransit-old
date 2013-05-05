@@ -73,8 +73,6 @@ class NextBus(object):
 
         resp = requests.get(self.url, params=params)
 
-        dirs = {}
-
         preds = []
         for predictions in parse(resp.content)['body']['predictions']:
             route_id = Route.create_id(stop.agency.id,

@@ -111,11 +111,35 @@ class Bart:
 
         return ([direction_a, direction_b], stops)
 
-    def predictions(self, stop, route=None):
-        abbr, dest = stop.get_id().split('-')
+    def _stop_predictions(self, stop):
+        return []
 
-        if route is None:
-            dest = None
+        # TODO: this needs to be able to link predictions to directions
+        abbr = stop.get_id().split('-')[0]
+
+        url = '{0}{1}'.format(self.url, 'etd.aspx')
+        params = dict(self.params)
+        params['cmd'] = 'etd'
+        # the station we're interested in
+        params['orig'] = abbr
+        resp = requests.get(url, params=params)
+
+        predictions = []
+        for direction in parse(resp.content)['root']['station']['etd']:
+            for prediction in direction['estimate']:
+                try:
+                    away = int(prediction['minutes']) * 60
+                except ValueError:
+                    continue
+                did = 'sf:bart:'
+                predictions.append(Prediction(stop=stop, away=away,
+                                              unit='seconds',
+                                              direction_id=did))
+
+        return predictions
+
+    def _route_predictions(self, stop, route):
+        abbr, dest = stop.get_id().split('-')
 
         url = '{0}{1}'.format(self.url, 'etd.aspx')
         params = dict(self.params)
@@ -136,3 +160,8 @@ class Bart:
                 return predictions
 
         return []
+
+    def predictions(self, stop, route=None):
+        if route:
+            return self._route_predictions(stop, route)
+        return self._stop_predictions(stop)
