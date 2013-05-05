@@ -30,17 +30,17 @@ class BaseView(NoParsesMixin, APIView):
         return Response(self.get_data(request, *args, **kwargs))
 
 
-class URLField(serializers.Field):
+class HRefField(serializers.Field):
 
     def __init__(self, *args, **kwargs):
-        super(URLField, self).__init__(*args, **kwargs)
+        super(HRefField, self).__init__(*args, **kwargs)
         kwargs['read_only'] = True
 
     def field_to_native(self, obj, field_name):
-        if field_name == 'url':
-            url = obj.get_absolute_url()
-            return self.context['request'].build_absolute_uri(url)
-        return super(URLField, self).field_to_native(obj, field_name)
+        if field_name == 'href':
+            href = obj.get_absolute_url()
+            return self.context['request'].build_absolute_uri(href)
+        return super(HRefField, self).field_to_native(obj, field_name)
 
 ## Root
 
@@ -51,7 +51,7 @@ def api_root(request):
 ## Regions
 
 class RegionSerializer(serializers.ModelSerializer):
-    url = URLField()
+    href = HRefField()
 
     class Meta:
         model = Region
@@ -68,7 +68,7 @@ class RegionList(NoParsesMixin, generics.ListAPIView):
 
 class AgencySerializer(serializers.ModelSerializer):
     id = serializers.Field(source='get_id')
-    url = URLField()
+    href = HRefField()
 
     class Meta:
         exclude = ('provider',)
@@ -93,7 +93,7 @@ class RegionDetail(NoParsesMixin, generics.RetrieveAPIView):
 
 class RouteSerializer(serializers.ModelSerializer):
     id = serializers.Field(source='get_id')
-    url = URLField()
+    href = HRefField()
 
     class Meta:
         exclude = ('agency', 'order')
@@ -144,10 +144,10 @@ class RouteStopSerializer(serializers.ModelSerializer):
 
     def to_native(self, obj):
         # since we have to add a route in to get a route specific stop
-        # we need to manually compute and add the url
+        # we need to manually compute and add the href
         ret = super(RouteStopSerializer, self).to_native(obj)
-        url = obj.get_absolute_url(self.context['route_slug'])
-        ret['url'] = self.context['request'].build_absolute_uri(url)
+        href = obj.get_absolute_url(self.context['route_slug'])
+        ret['href'] = self.context['request'].build_absolute_uri(href)
         return ret
 
     class Meta:
@@ -272,11 +272,10 @@ class NearbyStopSerializer(serializers.ModelSerializer):
     # TODO: routes
 
     def to_native(self, obj):
-        # since we have to add a route in to get a route specific stop
-        # we need to manually compute and add the url
+        # we need to manually compute and add the href
         ret = super(NearbyStopSerializer, self).to_native(obj)
-        url = obj.get_absolute_url()
-        ret['url'] = self.context['request'].build_absolute_uri(url)
+        href = obj.get_absolute_url()
+        ret['href'] = self.context['request'].build_absolute_uri(href)
         return ret
 
     class Meta:
@@ -284,7 +283,7 @@ class NearbyStopSerializer(serializers.ModelSerializer):
 
 
 class NearbyRegionSerializer(serializers.ModelSerializer):
-    url = URLField()
+    href = HRefField()
 
     def field_to_native(self, obj, field_name):
         if field_name == 'regions':
@@ -299,7 +298,7 @@ class NearbyRegionSerializer(serializers.ModelSerializer):
 
 class NearbyAgencySerializer(serializers.ModelSerializer):
     id = serializers.Field(source='get_id')
-    url = URLField()
+    href = HRefField()
 
     def field_to_native(self, obj, field_name):
         if field_name == 'agencies':
@@ -317,7 +316,7 @@ class NearbyAgencySerializer(serializers.ModelSerializer):
 
 class NearbyRouteSerializer(serializers.ModelSerializer):
     id = serializers.Field(source='get_id')
-    url = URLField()
+    href = HRefField()
 
     def field_to_native(self, obj, field_name):
         if field_name == 'routes':

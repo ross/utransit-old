@@ -68,9 +68,9 @@ class Agency(models.Model, IdMixin):
                                 choices=[(tz, tz) for tz in all_timezones])
     lang = models.CharField(max_length=2, blank=True, null=True,
                             choices=_all_languages())
-    site = models.URLField(max_length=256)
+    url = models.URLField(max_length=256)
     phone = models.CharField(max_length=32, blank=True, null=True)
-    fare_info = models.URLField(max_length=256, blank=True, null=True)
+    fare_url = models.URLField(max_length=256, blank=True, null=True)
     provider = models.CharField(max_length=16, choices=_provider_choices)
 
     @classmethod
