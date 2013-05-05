@@ -416,7 +416,7 @@ class NearbyDetail(NoParsesMixin, generics.RetrieveAPIView):
 
         return routes.values()
 
-    def retrieve(self, request, *args, **kwargs):
+    def retrieve(self, request, region=None, agency=None, *args, **kwargs):
         try:
             lat = float(request.GET['lat'])
             lon = float(request.GET['lon'])
@@ -434,8 +434,19 @@ class NearbyDetail(NoParsesMixin, generics.RetrieveAPIView):
         # we'll use ourselves as the object, listing it to prevent running the
         # query twice
         stops = list(Stop.objects.nearby(lat, lon, radius))
+
+        if region and agency:
+            agency_id = Agency.create_id(region, agency)
+            print('\n\n%s\n\n' % agency_id)
+
+            def desired_agency(stop):
+                return stop.agency_id == agency_id
+
+            stops = filter(desired_agency, stops)
+
         prefetch_related_objects(stops, ['agency', 'agency__region',
                                          'directions', 'directions__route'])
+
         self.stops = stops
         self.object = self
 

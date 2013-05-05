@@ -56,6 +56,9 @@ urlpatterns += patterns('www.api.views',
                             name='stop-route-detail'),
 
                         url(r'^api/nearby/',
+                            NearbyDetail.as_view(), name='nearby-detail'),
+                        url(r'^api/regions/(?P<region>[\w\-]+)'
+                            r'/agencies/(?P<agency>[\w\- ]+)/nearby/$',
                             NearbyDetail.as_view(), name='nearby-detail'))
 
 urlpatterns += patterns('', url(r'^api-auth/',
