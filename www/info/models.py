@@ -3,6 +3,7 @@
 #
 
 from django.db import models
+from math import cos, radians
 from pycountry import languages
 from pytz import all_timezones
 from rest_framework.reverse import reverse
@@ -164,6 +165,34 @@ class Direction(models.Model, IdMixin, UpdateMixin):
 stop_types= ('stop', 'station')
 
 
+class StopManager(models.Manager):
+
+    def nearby(self, lat, lon, radius):
+        # based on
+        # http://www.scribd.com/doc/2569355/Geo-Distance-Search-with-MySQL
+        # converted to meters
+
+        # create a square to filter out stops we know are out of consideration
+        # to avoid calculating their distances
+        r = (radius / 110574.61087757687)
+        lat_min = lat - r
+        lat_max = lat + r
+        r = (radius / abs(cos(radians(lat)) * 110574.61087757687))
+        lon_min = lon - r
+        lon_max = lon + r
+
+        return Stop.objects.raw('''select * from (select s.*, 6378100 * 2 *
+    asin(sqrt(power(sin((%s - abs(lat)) * pi() / 180 / 2),2) +
+              cos(%s * pi() / 180) * cos(abs(lat) * pi() / 180) *
+              power(sin((%s - lon) * pi() / 180 / 2), 2)))
+    as distance from info_stop s
+    where lat between %s and %s and lon between %s and %s
+    order by distance) i where distance < %s limit 20''',
+                                 [lat, lat, lon, lat_min, lat_max,
+                                  lon_min, lon_max, radius])
+
+
+
 class Stop(models.Model, IdMixin, UpdateMixin):
     agency = models.ForeignKey(Agency, related_name='stops')
     id = models.CharField(max_length=32, primary_key=True)
@@ -173,6 +202,8 @@ class Stop(models.Model, IdMixin, UpdateMixin):
                             blank=True, null=True)
     lat = models.FloatField()
     lon = models.FloatField()
+
+    objects = StopManager()
 
     @classmethod
     def create_id(cls, agency_id, id):
