@@ -181,6 +181,8 @@ class StopManager(models.Manager):
         lon_min = lon - r
         lon_max = lon + r
 
+        # TODO: lat & lon to radians in python
+
         return Stop.objects.raw('''select * from (select s.*, 6378100 * 2 *
     asin(sqrt(power(sin((%s - abs(lat)) * pi() / 180 / 2),2) +
               cos(%s * pi() / 180) * cos(abs(lat) * pi() / 180) *

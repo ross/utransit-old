@@ -35,14 +35,11 @@ class Bart:
         for route in parse(resp.content)['root']['routes']['route']:
             color = route['color']
             if color not in routes:
-                id = Route.create_id(agency.id, route['number'])
+                id = Route.create_id(agency.id, route['abbr'])
                 routes[color] = Route(id=id, agency=agency, name=route['name'],
                                       sign=route['abbr'], type=route_types[1],
                                       color=route['color'],
                                       order=len(routes))
-            else:
-                routes[color].id = '{0}-{1}'.format(routes[color].id,
-                                                    route['number'])
 
         return list(routes.values())
 
@@ -68,6 +65,10 @@ class Bart:
         self._cached_all_stops = stops
 
         return stops
+
+    id_to_number = {'sf:bart:PITT-SFIA': [1, 2], 'sf:bart:DALY-DUBL': [12, 11],
+                    'sf:bart:DALY-FRMT': [6, 5], 'sf:bart:FRMT-RICH': [3, 4],
+                    'sf:bart:MLBR-RICH': [8, 7]}
 
     def _route_info(self, route, number):
         url = '{0}{1}'.format(Bart.url, 'route.aspx')
@@ -104,17 +105,27 @@ class Bart:
         return (direction, stops)
 
     def stops(self, route):
-        a, b = route.get_id().split('-')
+        a, b = self.id_to_number[route.id]
         direction_a, stops = self._route_info(route, a)
         direction_b, stps = self._route_info(route, b)
         stops.update(stps)
 
         return ([direction_a, direction_b], stops)
 
-    def _stop_predictions(self, stop):
-        return []
+    color_dest_to_dir = {
+        '#ffff33': {'MLBR': 'sf:bart:PITT-SFIA:1',
+                    'PITT': 'sf:bart:PITT-SFIA:2'},
+        '#0099cc': {'DUBL': 'sf:bart:DALY-DUBL:11',
+                    'DALY': 'sf:bart:DALY-DUBL:12'},
+        '#339933': {'DALY': 'sf:bart:DALY-FRMT:5',
+                    'FRMT': 'sf:bart:DALY-FRMT:6'},
+        '#ff9933': {'RICH': 'sf:bart:FRMT-RICH:3',
+                    'FRMT': 'sf:bart:FRMT-RICH:4'},
+        '#ff0000': {'MLBR': 'sf:bart:MLBR-RICH:7',
+                    'RICH': 'sf:bart:MLBR-RICH:8'}
+    }
 
-        # TODO: this needs to be able to link predictions to directions
+    def _stop_predictions(self, stop):
         abbr = stop.get_id().split('-')[0]
 
         url = '{0}{1}'.format(self.url, 'etd.aspx')
@@ -125,13 +136,21 @@ class Bart:
         resp = requests.get(url, params=params)
 
         predictions = []
-        for direction in parse(resp.content)['root']['station']['etd']:
-            for prediction in direction['estimate']:
+        etds = parse(resp.content)['root']['station']['etd']
+        if isinstance(etds, OrderedDict):
+            etds = [etds]
+        for destination in etds:
+            dest_abbr = destination['abbreviation']
+            estimates = destination['estimate']
+            if isinstance(estimates, OrderedDict):
+                estimates = [estimates]
+            for prediction in estimates:
                 try:
                     away = int(prediction['minutes']) * 60
                 except ValueError:
                     continue
-                did = 'sf:bart:'
+                color = prediction['hexcolor']
+                did = self.color_dest_to_dir[color][dest_abbr]
                 predictions.append(Prediction(stop=stop, away=away,
                                               unit='seconds',
                                               direction_id=did))
