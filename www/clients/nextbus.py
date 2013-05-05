@@ -77,6 +77,8 @@ class NextBus(object):
         for predictions in parse(resp.content)['body']['predictions']:
             route_id = Route.create_id(stop.agency.id,
                                        predictions['@routeTag'])
+            if 'direction' not in predictions:
+                continue
             directions = predictions['direction']
             if isinstance(directions, OrderedDict):
                 directions = [directions]

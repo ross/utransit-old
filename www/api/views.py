@@ -101,6 +101,7 @@ class RouteSerializer(serializers.ModelSerializer):
 
 class AgencyDetailSerializer(serializers.ModelSerializer):
     id = serializers.Field(source='get_id')
+    region = RegionSerializer()
     routes = RouteSerializer(many=True)
 
     class Meta:
@@ -154,13 +155,24 @@ class RouteStopSerializer(serializers.ModelSerializer):
         model = Stop
 
 
+class AgencyRegionSerializer(serializers.ModelSerializer):
+    id = serializers.Field(source='get_id')
+    href = HRefField()
+    region = RegionSerializer()
+
+    class Meta:
+        exclude = ('provider',)
+        model = Agency
+
+
 class RouteDetailSerializer(serializers.ModelSerializer):
     id = serializers.Field(source='get_id')
     directions = DirectionSerializer(many=True)
     stops = RouteStopSerializer(many=True, source='get_stops')
+    agency = AgencyRegionSerializer()
 
     class Meta:
-        exclude = ('agency', 'order')
+        exclude = ('order',)
         model = Route
 
 
@@ -179,7 +191,8 @@ class RouteDetail(NoParsesMixin, generics.RetrieveAPIView):
 
     def retrieve(self, request, region, agency, pk):
         try:
-            self.object = Route.objects \
+            self.object = Route.objects.select_related('agency',
+                                                       'agency__region') \
                 .prefetch_related('directions', 'directions__stops') \
                 .get(pk=Route.create_id(Agency.create_id(region, agency), pk))
         except Route.DoesNotExist:
@@ -198,11 +211,12 @@ class RoutePredictionSerializer(serializers.ModelSerializer):
 
 class StopDetailSerializer(serializers.ModelSerializer):
     id = serializers.Field(source='get_id')
+    agency = AgencyRegionSerializer()
     predictions = RoutePredictionSerializer(many=True,
                                             source='get_predictions')
+    # TODO: other routes
 
     class Meta:
-        exclude = ('agency',)
         model = Stop
 
 
@@ -215,7 +229,7 @@ class RouteStopDetail(NoParsesMixin, generics.RetrieveAPIView):
 
     def retrieve(self, request, region, agency, route, pk):
         try:
-            stop = Stop.objects.select_related('agency') \
+            stop = Stop.objects.select_related('agency', 'agency__region') \
                 .get(pk=Stop.create_id(Agency.create_id(region, agency), pk))
         except Stop.DoesNotExist:
             raise Http404('No Route matches the given query.')
