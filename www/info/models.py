@@ -230,6 +230,9 @@ class Stop(models.Model, IdMixin, UpdateMixin):
     def get_predictions(self):
         return self._predictions
 
+    def get_routes(self):
+        return self._routes
+
     def __str__(self):
         return '{0} ({1})'.format(self.name, self.agency_id)
 
@@ -260,6 +263,7 @@ class Prediction(models.Model):
     unit = models.CharField(max_length=7,
                             choices=[(u, u) for u in prediction_units])
     departure = models.NullBooleanField(blank=True, null=True)
+    direction = models.ForeignKey(Direction, blank=True, null=True)
 
     class Meta:
         ordering = ('away',)

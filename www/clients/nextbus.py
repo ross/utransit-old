@@ -3,6 +3,7 @@
 #
 
 from collections import OrderedDict
+from operator import attrgetter
 from www.info.models import Direction, Prediction, Route, Stop
 from xmltodict import parse
 from .utils import RateLimitedSession
@@ -66,11 +67,40 @@ class NextBus(object):
 
         return (directions, stops)
 
-    def predictions(self, stop, route=None):
+    def _stop_predictions(self, stop):
         params = {'command': 'predictions', 'a': stop.agency.get_id(),
-                  's': stop.get_id()}
-        if route:
-            params['r'] = route.get_id()
+                  'stopId': stop.code}
+
+        resp = requests.get(self.url, params=params)
+
+        dirs = {}
+
+        preds = []
+        for predictions in parse(resp.content)['body']['predictions']:
+            route_id = Route.create_id(stop.agency.id,
+                                       predictions['@routeTag'])
+            directions = predictions['direction']
+            if isinstance(directions, OrderedDict):
+                directions = [directions]
+            for direction in directions:
+                predictions = direction['prediction']
+                if isinstance(predictions, OrderedDict):
+                    predictions = [predictions]
+                for prediction in predictions:
+                    dir_id = Direction.create_id(route_id,
+                                                 prediction['@dirTag'])
+                    departure = prediction['@isDeparture'] == 'true'
+                    preds.append(
+                        Prediction(stop=stop, away=int(prediction['@seconds']),
+                                   departure=departure, unit='seconds',
+                                   direction_id=dir_id))
+
+        preds.sort(key=attrgetter('away'))
+        return preds
+
+    def _route_predictions(self, stop, route):
+        params = {'command': 'predictions', 'a': stop.agency.get_id(),
+                  's': stop.get_id(), 'r': route.get_id()}
 
         resp = requests.get(self.url, params=params)
 
@@ -78,9 +108,14 @@ class NextBus(object):
         preds = parse(resp.content)['body']['predictions']
         if 'direction' in preds:
             for prediction in preds['direction']['prediction']:
+                departure = prediction['@isDeparture'] == 'true'
                 predictions.append(
-                    Prediction(stop=stop, away=prediction['@seconds'],
-                               departure=prediction['@isDeparture'],
-                               unit='seconds'))
+                    Prediction(stop=stop, away=int(prediction['@seconds']),
+                               departure=departure, unit='seconds'))
 
         return predictions
+
+    def predictions(self, stop, route=None):
+        if route:
+            return self._route_predictions(stop, route)
+        return self._stop_predictions(stop)
