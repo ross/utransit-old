@@ -181,12 +181,12 @@ class StopManager(models.Manager):
         lon_min = lon - r
         lon_max = lon + r
 
-        # TODO: lat & lon to radians in python
+        # TODO: lat & lon to radians in python?
 
-        return Stop.objects.raw('''select * from (select s.*, 6378100 * 2 *
-    asin(sqrt(power(sin((%s - abs(lat)) * pi() / 180 / 2),2) +
-              cos(%s * pi() / 180) * cos(abs(lat) * pi() / 180) *
-              power(sin((%s - lon) * pi() / 180 / 2), 2)))
+        return Stop.objects.raw('''select * from (select s.*, 12756200 *
+    asin(sqrt(pow(sin(radians(%s - lat) * 0.5), 2) +
+              cos(radians(%s)) * cos(radians(lat)) *
+              pow(sin(radians(%s - lon) * 0.5, 2)))
     as distance from info_stop s
     where lat between %s and %s and lon between %s and %s
     order by distance) i where distance < %s limit 20''',
@@ -239,6 +239,7 @@ class Stop(models.Model, IdMixin, UpdateMixin):
         return '{0} ({1})'.format(self.name, self.agency_id)
 
     class Meta:
+        index_together = (('lat', 'lon'),)
         ordering = ('name',)
 
 
@@ -265,6 +266,7 @@ class Prediction(models.Model):
     unit = models.CharField(max_length=7,
                             choices=[(u, u) for u in prediction_units])
     departure = models.NullBooleanField(blank=True, null=True)
+    realtime = models.BooleanField(default=True)
     direction = models.ForeignKey(Direction, blank=True, null=True)
 
     class Meta:

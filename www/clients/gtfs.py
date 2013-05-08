@@ -44,7 +44,6 @@ class Gtfs(object):
                                 sign=route['route_short_name'],
                                 name=route['route_long_name'],
                                 type=route_types[int(route['route_type'])],
-                                site=route.get('route_url', None),
                                 color=route.get('route_color', None)))
 
         routes.sort(key=route_key)

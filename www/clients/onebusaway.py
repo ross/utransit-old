@@ -19,6 +19,9 @@ class OneBusAway(object):
         if aid == 'DDOT':
             self.url = 'http://ddot-beta.herokuapp.com/api/api/where'
             self.params = {'key': 'BETA'}
+        if aid == 'MARTA':
+            self.url = 'http://onebusaway.gatech.edu/api/api/where'
+            self.params = {'key': 'TEST'}
         elif aid in ('MTA NYCT', 'MTABC'):
             self.url = 'http://bustime.mta.info/api/where'
             self.params = {'key': 'a00d08e5-245d-4b58-8eee-e08aa7510e82'}
@@ -42,7 +45,7 @@ class OneBusAway(object):
             routes.append(Route(id=id, agency=agency, sign=route['shortName'],
                                 name=long_name,
                                 type=route_types[int(route['type'])],
-                                site=route['url'], color=color))
+                                color=color))
 
         routes.sort(key=route_key)
         for i, route in enumerate(routes):
@@ -81,8 +84,7 @@ class OneBusAway(object):
         return (directions, stops)
 
     def _siri_stop_predictions(self, stop):
-        url = 'http://bustime.mta.info/api/siri/stop-monitoring.json' \
-            .format(self.url, stop.get_id())
+        url = 'http://bustime.mta.info/api/siri/stop-monitoring.json'
 
         # shares api keys with onebus
         params = dict(self.params)
@@ -108,8 +110,7 @@ class OneBusAway(object):
         return predictions
 
     def _siri_route_predictions(self, stop, route):
-        url = 'http://bustime.mta.info/api/siri/stop-monitoring.json' \
-            .format(self.url, stop.get_id())
+        url = 'http://bustime.mta.info/api/siri/stop-monitoring.json'
 
         # shares api keys with onebus
         params = dict(self.params)
@@ -152,13 +153,17 @@ class OneBusAway(object):
         predictions = []
         for arrival in data['arrivalsAndDepartures']:
             away = (arrival['predictedArrivalTime'] - current_time) / 1000.0
+            realtime = True
+            if away == 0:
+                away = (arrival['scheduledArrivalTime'] - current_time) / 1000.0
+                realtime = False
             if away >= 0:
                 dir_name = arrival['tripHeadsign']
                 if dir_name not in dirs:
                     dirs[dir_name] = Direction.objects.get(name=dir_name).id
                 did = dirs[dir_name]
                 predictions.append(Prediction(stop=stop, away=int(away),
-                                              unit='seconds',
+                                              unit='seconds', realtime=realtime,
                                               direction_id=did))
 
         #predictions.sort(key=attrgetter('away'))
@@ -180,9 +185,14 @@ class OneBusAway(object):
         route_id = route.get_id()
         for arrival in data['arrivalsAndDepartures']:
             away = (arrival['predictedArrivalTime'] - current_time) / 1000.0
+            realtime = True
+            if away == 0:
+                away = (arrival['scheduledArrivalTime'] - current_time) / 1000.0
+                realtime = False
             if arrival['routeId'] == route_id and away >= 0:
                 predictions.append(Prediction(stop=stop, away=int(away),
-                                              unit='seconds'))
+                                              unit='seconds',
+                                              realtime=realtime))
 
         return predictions
 

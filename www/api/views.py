@@ -70,7 +70,7 @@ class AgencySerializer(serializers.ModelSerializer):
     href = HRefField()
 
     class Meta:
-        exclude = ('provider',)
+        exclude = ('provider', 'region')
         model = Agency
 
 
