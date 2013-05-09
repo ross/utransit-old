@@ -155,7 +155,8 @@ class Direction(models.Model, IdMixin, UpdateMixin):
         return '{0}:{1}'.format(route_id, id)
 
     def get_stop_ids(self):
-        return [s.id.split(':')[-1] for s in self.stops.all()]
+        return [s.stop_id.split(':')[-1]
+                for s in self.stop_directions.all()]
 
     def __str__(self):
         return '{0} ({1})'.format(self.name, self.route_id)
