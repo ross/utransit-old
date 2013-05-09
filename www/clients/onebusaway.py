@@ -38,12 +38,18 @@ class OneBusAway(object):
 
         routes = []
         for route in resp.json()['data']['list']:
-            long_name = route['longName'] if route['longName'] else \
-                route['shortName']
+            short_name = route['shortName']
+            long_name = route['longName']
+
+            name = ''
+            if short_name and long_name.find(short_name) == -1:
+                name = short_name + " - "
+            name += long_name if long_name else route['description']
+
             color = route['color'] if route['color'] else None
             id = Route.create_id(agency.id, route['id'])
-            routes.append(Route(id=id, agency=agency, sign=route['shortName'],
-                                name=long_name,
+            routes.append(Route(id=id, agency=agency, sign=short_name,
+                                name=name,
                                 type=route_types[int(route['type'])],
                                 color=color))
 

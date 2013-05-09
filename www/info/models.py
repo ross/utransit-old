@@ -21,10 +21,12 @@ class UpdateMixin(object):
         changed = False
         for k, v in other.__dict__.items():
             # ignore id, hidden stuff, and foreign keys
-            if not (k == 'id' or k.startswith('_') or k.endswith('_id')) and \
-                    getattr(self, k) != v :
-                changed = True
-                setattr(self, k, v)
+            if k == 'id' or k.startswith('_') or k.endswith('_id'):
+                continue
+            if getattr(self, k) == v:
+                continue
+            setattr(self, k, v)
+            changed = True
         return changed
 
 
