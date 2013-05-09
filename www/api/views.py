@@ -125,10 +125,11 @@ class AgencyDetail(NoParsesMixin, generics.RetrieveAPIView):
 ## Route
 
 class DirectionSerializer(serializers.ModelSerializer):
+    id = serializers.Field(source='get_id')
     stops = serializers.Field(source='get_stop_ids')
 
     class Meta:
-        exclude = ('id', 'route')
+        exclude = ('route',)
         model = Direction
 
 
@@ -252,6 +253,7 @@ class AgencyPredictionSerializer(serializers.ModelSerializer):
 
 
 class AgencyStopDirectionSerializer(serializers.ModelSerializer):
+    id = serializers.Field(source='get_id')
 
     def field_to_native(self, obj, field_name):
         if field_name == 'directions':
@@ -261,7 +263,7 @@ class AgencyStopDirectionSerializer(serializers.ModelSerializer):
             .field_to_native(obj, field_name)
 
     class Meta:
-        exclude = ('id', 'route', 'stops')
+        exclude = ('route', 'stops')
         model = Direction
 
 
@@ -324,11 +326,13 @@ class AgencyStopDetail(NoParsesMixin, generics.RetrieveAPIView):
 ## Nearby
 
 class NearbyDirectionSerializer(serializers.ModelSerializer):
+    id = serializers.Field(source='get_id')
     route = serializers.Field(source='route.get_id')
 
     class Meta:
-        exclude = ('id', 'stops',)
+        exclude = ('stops',)
         model = Direction
+
 
 class NearbyStopSerializer(serializers.ModelSerializer):
     id = serializers.Field(source='get_id')
