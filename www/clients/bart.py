@@ -85,21 +85,21 @@ class Bart:
         all_stops = self._all_stops()
         stop_ids = []
         stops = {}
-        # origin
-        origin = abbrs.pop(0)
+        # dest
+        dest = abbrs.pop()
         for abbr in abbrs:
             # copy over the relevant stations
             stop = all_stops[abbr]
             stop = Stop(agency=route.agency,
                         id=Stop.create_id(route.agency.id,
-                                          '{0}-{1}'.format(abbr, origin)),
+                                          '{0}-{1}'.format(abbr, dest)),
                         name=stop.name, lat=stop.lat, lon=stop.lon,
                         type=stop.type)
             stop_ids.append(stop.id)
             stops[stop.id] = stop
         direction = Direction(route=route,
                               id=Direction.create_id(route.id, number),
-                              name=data['name'])
+                              name=data['name'].split(' - ')[1])
         direction.stop_ids = stop_ids
 
         return (direction, stops)
@@ -166,10 +166,16 @@ class Bart:
         params['orig'] = abbr
         resp = requests.get(url, params=params)
 
-        for direction in parse(resp.content)['root']['station']['etd']:
+        etds = parse(resp.content)['root']['station']['etd']
+        if isinstance(etds, OrderedDict):
+            etds = [etds]
+        for direction in etds:
             if not dest or direction['abbreviation'] == dest:
                 predictions = []
-                for prediction in direction['estimate']:
+                estimates = direction['estimate']
+                if isinstance(estimates, OrderedDict):
+                    estimates = [estimates]
+                for prediction in estimates:
                     try:
                         away = int(prediction['minutes']) * 60
                     except ValueError:
