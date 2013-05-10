@@ -93,7 +93,7 @@ class Agency(models.Model, IdMixin):
                        args=(self.get_region_id(self.id), self.get_id()))
 
     def __str__(self):
-        return '{0} ({1})'.format(self.name, self.region_id)
+        return u'{0} ({1})'.format(self.name, self.region_id)
 
     class Meta:
         ordering = ('name',)
@@ -139,7 +139,7 @@ class Route(models.Model, IdMixin, UpdateMixin):
         return stops
 
     def __str__(self):
-        return '{0} ({1})'.format(self.name, self.agency_id)
+        return u'{0} ({1})'.format(self.name, self.agency_id)
 
     class Meta:
         ordering = ('order',)
@@ -163,7 +163,7 @@ class Direction(models.Model, IdMixin, UpdateMixin):
                 for s in self.stop_directions.all()]
 
     def __str__(self):
-        return '{0} ({1})'.format(self.name, self.route_id)
+        return u'{0} ({1})'.format(self.name, self.route_id)
 
     class Meta:
         ordering = ('name',)
@@ -242,7 +242,7 @@ class Stop(models.Model, IdMixin, UpdateMixin):
         return self._routes
 
     def __str__(self):
-        return '{0} ({1})'.format(self.name, self.agency_id)
+        return u'{0} ({1})'.format(self.name, self.agency_id)
 
     class Meta:
         index_together = (('lat', 'lon'),)
@@ -255,7 +255,7 @@ class StopDirection(models.Model, IdMixin):
     order = models.IntegerField()
 
     def __str__(self):
-        return '{0} ({1})'.format(self.stop_id, self.direction_id)
+        return u'{0} ({1})'.format(self.stop_id, self.direction_id)
 
     class Meta:
         ordering = ('order',)
