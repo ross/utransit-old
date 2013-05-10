@@ -105,7 +105,8 @@ class _OneBusAway(object):
             away = (arrival['predictedArrivalTime'] - current_time) / 1000.0
             typ = arrival_types[0]
             if away == 0:
-                away = (arrival['scheduledArrivalTime'] - current_time) / 1000.0
+                away = (arrival['scheduledArrivalTime'] -
+                        current_time) / 1000.0
                 typ = arrival_types[1]
             if away >= 0:
                 dir_name = arrival['tripHeadsign']
@@ -114,7 +115,7 @@ class _OneBusAway(object):
                         # TODO: handle routes that are stopping short/are
                         # alternates
                         dirs[dir_name] = \
-                                Direction.objects.get(name=dir_name).id
+                            Direction.objects.get(name=dir_name).id
                     except Direction.DoesNotExist:
                         logger.warn('unknown direction (%s)', dir_name)
                         continue
@@ -142,7 +143,8 @@ class _OneBusAway(object):
             away = (arrival['predictedArrivalTime'] - current_time) / 1000.0
             typ = arrival_types[0]
             if away == 0:
-                away = (arrival['scheduledArrivalTime'] - current_time) / 1000.0
+                away = (arrival['scheduledArrivalTime'] -
+                        current_time) / 1000.0
                 typ = arrival_types[1]
             if arrival['routeId'] == route_id and away >= 0:
                 arrivals.append(Arrival(stop=stop, away=int(away), type=typ))
@@ -174,7 +176,7 @@ class OneBusAwayMta(_OneBusAway):
 
         # shares api keys with onebus
         params = dict(self.params)
-        params['MonitoringRef'] =  stop.get_id().split('_')[1]
+        params['MonitoringRef'] = stop.get_id().split('_')[1]
 
         arrivals = []
 
@@ -200,7 +202,7 @@ class OneBusAwayMta(_OneBusAway):
 
         # shares api keys with onebus
         params = dict(self.params)
-        params['MonitoringRef'] =  stop.get_id().split('_')[1]
+        params['MonitoringRef'] = stop.get_id().split('_')[1]
         params['LineRef'] = route.get_id().split('_')[1]
 
         arrivals = []
@@ -233,4 +235,3 @@ class OneBusAwayUsf(_OneBusAway):
 
     def _decode_id(self, id):
         return id.replace('HART', 'Hillsborough Area Regional Transit')
-

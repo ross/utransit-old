@@ -6,6 +6,7 @@ from django.conf import settings
 from rest_framework import exceptions
 from rest_framework.authentication import BaseAuthentication
 
+
 class TokenMiddlewareAuthentication(BaseAuthentication):
 
     def authenticate(self, request):

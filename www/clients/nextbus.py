@@ -9,6 +9,7 @@ from xmltodict import parse
 from .utils import RateLimitedSession
 import requests
 
+
 class NextBus(object):
     url = 'http://webservices.nextbus.com/service/publicXMLFeed'
 

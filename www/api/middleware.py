@@ -45,4 +45,3 @@ class ExceptionLoggingMiddleware:
 
     def process_exception(self, request, exception):
         logger.exception('unhandled exception')
-

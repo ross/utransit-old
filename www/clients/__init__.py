@@ -39,6 +39,7 @@ def sync_agency(agency):
     finally:
         transaction.rollback()
 
+
 def _sync_agency(agency):
     provider = get_provider(agency)
 

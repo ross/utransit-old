@@ -8,12 +8,11 @@ from www.api.views import AgencyDetail, AgencyStopDetail, NearbyDetail, \
 
 admin.autodiscover()
 
-urlpatterns = patterns('',
-    url(r'^adm/', include(admin.site.urls)),
-)
+urlpatterns = patterns('', url(r'^adm/', include(admin.site.urls)))
 
 
-# http://stackoverflow.com/questions/11661503/django-caching-for-authenticated-users-only
+# http://stackoverflow.com/questions/11661503/
+#   django-caching-for-authenticated-users-only
 def cache_on_auth(timeout):
     def decorator(view_func):
         @wraps(view_func, assigned=available_attrs(view_func))

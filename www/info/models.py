@@ -169,7 +169,7 @@ class Direction(models.Model, IdMixin, UpdateMixin):
         ordering = ('name',)
 
 
-stop_types= ('stop', 'station')
+stop_types = ('stop', 'station')
 
 
 class StopManager(models.Manager):
@@ -197,9 +197,8 @@ class StopManager(models.Manager):
     as distance from info_stop s
     where lat between %s and %s and lon between %s and %s
     order by distance) i where distance < %s limit 20''',
-                                 [lat, lat, lon, lat_min, lat_max,
-                                  lon_min, lon_max, radius])
-
+                                [lat, lat, lon, lat_min, lat_max,
+                                 lon_min, lon_max, radius])
 
 
 class Stop(models.Model, IdMixin, UpdateMixin):

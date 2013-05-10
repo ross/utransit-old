@@ -12,8 +12,8 @@ import requests
 
 
 class Bart:
-    url = 'http://api.bart.gov/api/';
-    params = {'key': 'MW9S-E7SL-26DU-VV8V'};
+    url = 'http://api.bart.gov/api/'
+    params = {'key': 'MW9S-E7SL-26DU-VV8V'}
 
     def __init__(self, agency):
         self.agency = agency

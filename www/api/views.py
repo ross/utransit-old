@@ -41,6 +41,7 @@ class HRefField(serializers.Field):
             return self.context['request'].build_absolute_uri(href)
         return super(HRefField, self).field_to_native(obj, field_name)
 
+
 ## Root
 
 def api_root(request):
@@ -62,6 +63,7 @@ class RegionList(NoParsesMixin, generics.ListAPIView):
     '''
     model = Region
     serializer_class = RegionSerializer
+
 
 ## Region
 
@@ -87,6 +89,7 @@ class RegionDetail(NoParsesMixin, generics.RetrieveAPIView):
     '''
     model = Region
     serializer_class = RegionDetailSerializer
+
 
 ## Agency
 
@@ -121,6 +124,7 @@ class AgencyDetail(NoParsesMixin, generics.RetrieveAPIView):
                                         pk=Agency.create_id(region, pk))
         serializer = self.get_serializer(self.object)
         return Response(serializer.data)
+
 
 ## Route
 
@@ -201,6 +205,7 @@ class RouteDetail(NoParsesMixin, generics.RetrieveAPIView):
         serializer = self.get_serializer(self.object)
         return Response(serializer.data)
 
+
 ## Route Stop
 
 class RouteArrivalSerializer(serializers.ModelSerializer):
@@ -239,6 +244,7 @@ class RouteStopDetail(NoParsesMixin, generics.RetrieveAPIView):
         self.object = stop
         serializer = self.get_serializer(stop)
         return Response(serializer.data)
+
 
 ## Agency Stop
 
@@ -279,7 +285,7 @@ class AgencyStopRouteSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Route
-        
+
 
 class AgencyStopSerializer(serializers.ModelSerializer):
     id = serializers.Field(source='get_id')
@@ -390,7 +396,7 @@ class NearbyRouteSerializer(serializers.ModelSerializer):
     def field_to_native(self, obj, field_name):
         if field_name == 'routes':
             value = getattr(obj, field_name)
-            routes = defaultdict(lambda : defaultdict(dict))
+            routes = defaultdict(lambda: defaultdict(dict))
             for v in value():
                 region_id = Route.get_region_id(v.id)
                 agency_id = Route.get_agency_id(v.id)
