@@ -31,7 +31,7 @@ class UpdateMixin(object):
 
 
 class Region(models.Model):
-    id = models.CharField(max_length=32, primary_key=True)
+    id = models.CharField(max_length=8, primary_key=True)
     name = models.CharField(max_length=128)
     sign = models.CharField(max_length=12)
 
@@ -58,13 +58,17 @@ def _all_languages():
             yield (l, l)
 
 
-_provider_choices = (('NextBus', 'NextBus'), ('OneBusAway', 'OneBusAway'),
-                     ('Bart', 'Bart'), ('GTFS', 'GTFS'))
+_provider_choices = (('NextBus', 'NextBus'), ('Bart', 'Bart'),
+                     ('GTFS', 'GTFS'), ('OneBusAwayDdot', 'OneBusAwayDdot'),
+                     ('OneBusAwayGaTech', 'OneBusAwayGaTech'),
+                     ('OneBusAwayMta', 'OneBusAwayMta'),
+                     ('OneBusAwaySea', 'OneBusAwaySea'),
+                     ('OneBusAwayUsf', 'OneBusAwayUsf'))
 
 
 class Agency(models.Model, IdMixin):
     region = models.ForeignKey(Region, related_name='agencies')
-    id = models.CharField(max_length=32, primary_key=True)
+    id = models.CharField(max_length=64, primary_key=True)
     name = models.CharField(max_length=64)
     sign = models.CharField(max_length=12)
     timezone = models.CharField(max_length=32,
@@ -101,7 +105,7 @@ route_types = ('light-rail', 'subway', 'rail', 'bus', 'ferry', 'cable-car',
 
 class Route(models.Model, IdMixin, UpdateMixin):
     agency = models.ForeignKey(Agency, related_name='routes')
-    id = models.CharField(max_length=32, primary_key=True)
+    id = models.CharField(max_length=64, primary_key=True)
     name = models.CharField(max_length=64)
     sign = models.CharField(max_length=12)
     type = models.CharField(max_length=10,
@@ -144,7 +148,7 @@ class Route(models.Model, IdMixin, UpdateMixin):
 
 class Direction(models.Model, IdMixin, UpdateMixin):
     route = models.ForeignKey(Route, related_name='directions')
-    id = models.CharField(max_length=32, primary_key=True)
+    id = models.CharField(max_length=64, primary_key=True)
     name = models.CharField(max_length=64)
 
     stops = models.ManyToManyField('Stop', through='StopDirection',
@@ -200,7 +204,7 @@ class StopManager(models.Manager):
 
 class Stop(models.Model, IdMixin, UpdateMixin):
     agency = models.ForeignKey(Agency, related_name='stops')
-    id = models.CharField(max_length=32, primary_key=True)
+    id = models.CharField(max_length=64, primary_key=True)
     name = models.CharField(max_length=64)
     code = models.CharField(max_length=16, blank=True, null=True)
     type = models.CharField(max_length=7, choices=[(t, t) for t in stop_types],
@@ -232,8 +236,8 @@ class Stop(models.Model, IdMixin, UpdateMixin):
                                             self.get_agency_id(self.id),
                                             self.get_id()))
 
-    def get_predictions(self):
-        return self._predictions
+    def get_arrivals(self):
+        return self._arrivals
 
     def get_routes(self):
         return self._routes
@@ -259,21 +263,20 @@ class StopDirection(models.Model, IdMixin):
         unique_together = (('stop', 'direction'),)
 
 
-prediction_units = ('seconds', 'meters')
+arrival_units = ('seconds', 'meters')
+arrival_types = ('realtime', 'scheduled')
 
 
-class Prediction(models.Model):
-    # TODO: no need to create a table for these, they won't be persisted
-    stop = models.ForeignKey(Stop, related_name='predictions')
-    away = models.IntegerField()
-    unit = models.CharField(max_length=7,
-                            choices=[(u, u) for u in prediction_units])
-    departure = models.NullBooleanField(blank=True, null=True)
-    realtime = models.BooleanField(default=True)
+class Arrival(models.Model):
+    id = models.CharField(max_length=64, primary_key=True)
+    stop = models.ForeignKey(Stop, related_name='arrivals')
     direction = models.ForeignKey(Direction, blank=True, null=True)
+    destination = models.ForeignKey(Stop)
+    away = models.IntegerField()
+    unit = models.CharField(max_length=7, default=arrival_units[0],
+                            choices=[(u, u) for u in arrival_units])
+    type = models.CharField(max_length=9, default=arrival_types[0],
+                            choices=[(t, t) for t in arrival_types])
 
     class Meta:
         ordering = ('away',)
-
-
-# TODO: do we want to connect stops directly to routes for performance?

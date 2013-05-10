@@ -11,7 +11,7 @@ from rest_framework.response import Response
 from rest_framework.reverse import reverse
 from rest_framework.views import APIView
 from www.clients import get_provider
-from www.info.models import Agency, Direction, Prediction, Region, Route, Stop
+from www.info.models import Agency, Arrival, Direction, Region, Route, Stop
 
 
 class NoParsesMixin(object):
@@ -203,18 +203,17 @@ class RouteDetail(NoParsesMixin, generics.RetrieveAPIView):
 
 ## Route Stop
 
-class RoutePredictionSerializer(serializers.ModelSerializer):
+class RouteArrivalSerializer(serializers.ModelSerializer):
 
     class Meta:
         exclude = ('id', 'route', 'stop', 'direction')
-        model = Prediction
+        model = Arrival
 
 
 class StopDetailSerializer(serializers.ModelSerializer):
     id = serializers.Field(source='get_id')
     agency = AgencyRegionSerializer()
-    predictions = RoutePredictionSerializer(many=True,
-                                            source='get_predictions')
+    arrivals = RouteArrivalSerializer(many=True, source='get_arrivals')
     # TODO: other routes
 
     class Meta:
@@ -236,20 +235,20 @@ class RouteStopDetail(NoParsesMixin, generics.RetrieveAPIView):
             raise Http404('No Route matches the given query.')
         agency = stop.agency
         route = get_object_or_404(Route, pk=Route.create_id(agency.id, route))
-        stop._predictions = get_provider(stop.agency).predictions(stop, route)
+        stop._arrivals = get_provider(stop.agency).arrivals(stop, route)
         self.object = stop
         serializer = self.get_serializer(stop)
         return Response(serializer.data)
 
 ## Agency Stop
 
-class AgencyPredictionSerializer(serializers.ModelSerializer):
+class AgencyArrivalSerializer(serializers.ModelSerializer):
     direction = serializers.Field(source='direction.get_id')
     route = serializers.Field(source='direction.route.get_id')
 
     class Meta:
         exclude = ('id', 'stop',)
-        model = Prediction
+        model = Arrival
 
 
 class AgencyStopDirectionSerializer(serializers.ModelSerializer):
@@ -284,8 +283,7 @@ class AgencyStopRouteSerializer(serializers.ModelSerializer):
 
 class AgencyStopSerializer(serializers.ModelSerializer):
     id = serializers.Field(source='get_id')
-    predictions = AgencyPredictionSerializer(many=True,
-                                             source='get_predictions')
+    arrivals = AgencyArrivalSerializer(many=True, source='get_arrivals')
     routes = AgencyStopRouteSerializer(many=True,
                                        source='get_routes')
 
@@ -307,14 +305,14 @@ class AgencyStopDetail(NoParsesMixin, generics.RetrieveAPIView):
         except Stop.DoesNotExist:
             raise Http404('No Route matches the given query.')
         agency = stop.agency
-        predictions = get_provider(stop.agency).predictions(stop)
-        prefetch_related_objects(predictions, ['direction__route__directions'])
-        stop._predictions = predictions
+        arrivals = get_provider(stop.agency).arrivals(stop)
+        prefetch_related_objects(arrivals, ['direction__route__directions'])
+        stop._arrivals = arrivals
 
         routes = {}
-        for prediction in predictions:
-            if prediction.direction:
-                route = prediction.direction.route
+        for arrival in arrivals:
+            if arrival.direction:
+                route = arrival.direction.route
                 routes[route.id] = route
         stop._routes = routes.values()
 

@@ -7,23 +7,28 @@ from www.info.models import Direction, Route, Stop, StopDirection
 from .bart import Bart
 from .gtfs import Gtfs
 from .nextbus import NextBus
-from .onebusaway import OneBusAway
+from .onebusaway import OneBusAwayDdot, OneBusAwayGaTech, OneBusAwayMta, \
+    OneBusAwaySea, OneBusAwayUsf
 import logging
 
 logger = logging.getLogger(__name__)
+_providers = {
+    'OneBusAwayDdot': OneBusAwayDdot,
+    'OneBusAwayGaTech': OneBusAwayGaTech,
+    'OneBusAwayMta': OneBusAwayMta,
+    'OneBusAwayUsf': OneBusAwayUsf,
+    'OneBusAwaySea': OneBusAwaySea,
+    'NextBus': NextBus,
+    'Bart': Bart,
+    'GTFS': Gtfs,
+}
 
 
 def get_provider(agency):
-    id = agency.provider
-    if id == 'OneBusAway':
-        return OneBusAway(agency)
-    elif id == 'NextBus':
-        return NextBus(agency)
-    elif id == 'Bart':
-        return Bart(agency)
-    elif id == 'GTFS':
-        return Gtfs(agency)
-    raise Exception('unknown provider')
+    try:
+        return _providers[agency.provider](agency)
+    except KeyError:
+        raise Exception('unknown provider, {0}'.format(agency.provider))
 
 
 @transaction.commit_manually

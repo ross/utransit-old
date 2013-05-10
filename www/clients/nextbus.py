@@ -4,7 +4,7 @@
 
 from collections import OrderedDict
 from operator import attrgetter
-from www.info.models import Direction, Prediction, Route, Stop
+from www.info.models import Arrival, Direction, Route, Stop
 from xmltodict import parse
 from .utils import RateLimitedSession
 import requests
@@ -67,13 +67,13 @@ class NextBus(object):
 
         return (directions, stops)
 
-    def _stop_predictions(self, stop):
+    def _stop_arrivals(self, stop):
         params = {'command': 'predictions', 'a': stop.agency.get_id(),
                   'stopId': stop.code}
 
         resp = requests.get(self.url, params=params)
 
-        preds = []
+        arrivals = []
         for predictions in parse(resp.content)['body']['predictions']:
             route_id = Route.create_id(stop.agency.id,
                                        predictions['@routeTag'])
@@ -90,32 +90,30 @@ class NextBus(object):
                     dir_id = Direction.create_id(route_id,
                                                  prediction['@dirTag'])
                     departure = prediction['@isDeparture'] == 'true'
-                    preds.append(
-                        Prediction(stop=stop, away=int(prediction['@seconds']),
-                                   departure=departure, unit='seconds',
-                                   direction_id=dir_id))
+                    arrivals.append(Arrival(stop=stop,
+                                            away=int(prediction['@seconds']),
+                                            direction_id=dir_id))
 
-        preds.sort(key=attrgetter('away'))
-        return preds
+        arrivals.sort(key=attrgetter('away'))
+        return arrivals
 
-    def _route_predictions(self, stop, route):
+    def _route_arrivals(self, stop, route):
         params = {'command': 'predictions', 'a': stop.agency.get_id(),
                   's': stop.get_id(), 'r': route.get_id()}
 
         resp = requests.get(self.url, params=params)
 
-        predictions = []
+        arrivals = []
         preds = parse(resp.content)['body']['predictions']
         if 'direction' in preds:
             for prediction in preds['direction']['prediction']:
                 departure = prediction['@isDeparture'] == 'true'
-                predictions.append(
-                    Prediction(stop=stop, away=int(prediction['@seconds']),
-                               departure=departure, unit='seconds'))
+                arrivals.append(Arrival(stop=stop,
+                                        away=int(prediction['@seconds'])))
 
-        return predictions
+        return arrivals
 
-    def predictions(self, stop, route=None):
+    def arrivals(self, stop, route=None):
         if route:
-            return self._route_predictions(stop, route)
-        return self._stop_predictions(stop)
+            return self._route_arrivals(stop, route)
+        return self._stop_arrivals(stop)

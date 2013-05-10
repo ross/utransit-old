@@ -4,8 +4,8 @@
 
 from collections import OrderedDict
 from django.core.cache import cache
-from www.info.models import Direction, Prediction, Route, Stop, \
-    route_types, stop_types
+from www.info.models import Arrival, Direction, Route, Stop, route_types, \
+    stop_types
 from xmltodict import parse
 from .utils import RateLimitedSession
 import requests
@@ -126,7 +126,7 @@ class Bart:
                     'RICH': 'sf:bart:MLBR-RICH:8'}
     }
 
-    def _stop_predictions(self, stop):
+    def _stop_arrivals(self, stop):
         abbr = stop.get_id().split('-')[0]
 
         url = '{0}{1}'.format(self.url, 'etd.aspx')
@@ -136,7 +136,7 @@ class Bart:
         params['orig'] = abbr
         resp = requests.get(url, params=params)
 
-        predictions = []
+        arrivals = []
         etds = parse(resp.content)['root']['station']['etd']
         if isinstance(etds, OrderedDict):
             etds = [etds]
@@ -145,18 +145,17 @@ class Bart:
             estimates = destination['estimate']
             if isinstance(estimates, OrderedDict):
                 estimates = [estimates]
-            for prediction in estimates:
+            for arrival in estimates:
                 try:
-                    away = int(prediction['minutes']) * 60
+                    away = int(arrival['minutes']) * 60
                 except ValueError:
                     continue
-                color = prediction['hexcolor']
+                color = arrival['hexcolor']
                 did = self.color_dest_to_dir[color][dest_abbr]
-                predictions.append(Prediction(stop=stop, away=away,
-                                              unit='seconds',
-                                              direction_id=did))
+                arrivals.append(Arrival(stop=stop, away=away,
+                                        direction_id=did))
 
-        return predictions
+        return arrivals
 
     def _route_abbrs(self, route, stop):
         '''finds all of the station abbrs for a given route and stop, cached
@@ -174,7 +173,7 @@ class Bart:
 
         return abbrs
 
-    def _route_predictions(self, stop, route):
+    def _route_arrivals(self, stop, route):
         orig, dest = stop.get_id().split('-')
 
         url = '{0}{1}'.format(self.url, 'etd.aspx')
@@ -198,22 +197,21 @@ class Bart:
             etds = [etds]
         for direction in etds:
             if direction['abbreviation'] in laterAbbrs:
-                predictions = []
+                arrivals = []
                 estimates = direction['estimate']
                 if isinstance(estimates, OrderedDict):
                     estimates = [estimates]
-                for prediction in estimates:
+                for arrival in estimates:
                     try:
-                        away = int(prediction['minutes']) * 60
+                        away = int(arrival['minutes']) * 60
                     except ValueError:
                         continue
-                    predictions.append(Prediction(stop=stop, away=away,
-                                                  unit='seconds'))
-                return predictions
+                    arrivals.append(Arrival(stop=stop, away=away))
+                return arrivals
 
         return []
 
-    def predictions(self, stop, route=None):
+    def arrivals(self, stop, route=None):
         if route:
-            return self._route_predictions(stop, route)
-        return self._stop_predictions(stop)
+            return self._route_arrivals(stop, route)
+        return self._stop_arrivals(stop)

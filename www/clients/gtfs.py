@@ -121,7 +121,7 @@ class Gtfs(object):
 
         return (directions, stops)
 
-    def _lextran_predictions(self, route, stop):
+    def _lextran_arrivals(self, route, stop):
         url = 'http://realtime.lextran.com/InfoPoint/map/GetStopHtml.ashx'
         params = {'stopId': 43}
         headers = {}
@@ -147,7 +147,7 @@ class Gtfs(object):
 
         return []
 
-    def _translink_predictions(self, route, stop):
+    def _translink_arrivals(self, route, stop):
         print('\n\n%s\n\n' % stop.get_id())
         url = 'http://api.translink.ca/rttiapi/v1/stops/{0}/estimates' \
             .format(stop.get_id())
@@ -161,11 +161,11 @@ class Gtfs(object):
 
         return []
 
-    def predictions(self, stop, route=None):
+    def arrivals(self, stop, route=None):
         return []
         # TODO: better system for this
         if stop.agency.id == 'lex:71':
-            return self._lextran_predictions(route, stop)
+            return self._lextran_arrivals(route, stop)
         elif stop.agency.id == 'van:CMBC':
-            return self._translink_predictions(route, stop)
+            return self._translink_arrivals(route, stop)
         return []

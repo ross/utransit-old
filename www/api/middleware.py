@@ -4,8 +4,9 @@
 
 from django.contrib.auth import get_user_model
 from rest_framework import HTTP_HEADER_ENCODING
+import logging
 
-
+logger = logging.getLogger(__name__)
 User = get_user_model()
 
 
@@ -38,3 +39,10 @@ class TokenMiddleware:
     def process_request(self, request):
         # using lambda to make it lazy
         request.token_user = lambda: get_user_by_token(request)
+
+
+class ExceptionLoggingMiddleware:
+
+    def process_exception(self, request, exception):
+        logger.exception('unhandled exception')
+

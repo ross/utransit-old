@@ -2,38 +2,32 @@
 #
 #
 
-from www.info.models import Direction, Prediction, Route, Stop, route_types, \
-    stop_types
+from www.info.models import Arrival, Direction, Route, Stop, arrival_types, \
+    route_types, stop_types, arrival_units
 from .utils import RateLimitedSession, route_key
 import requests
+import logging
+
+logger = logging.getLogger(__name__)
 
 
-class OneBusAway(object):
+class _OneBusAway(object):
 
     def __init__(self, agency):
         self.agency = agency
-
         self.session = RateLimitedSession()
 
-        aid = agency.get_id()
-        if aid == 'DDOT':
-            self.url = 'http://ddot-beta.herokuapp.com/api/api/where'
-            self.params = {'key': 'BETA'}
-        if aid == 'MARTA':
-            self.url = 'http://onebusaway.gatech.edu/api/api/where'
-            self.params = {'key': 'TEST'}
-        elif aid in ('MTA NYCT', 'MTABC'):
-            self.url = 'http://bustime.mta.info/api/where'
-            self.params = {'key': 'a00d08e5-245d-4b58-8eee-e08aa7510e82'}
-        else:
-            self.url = 'http://api.onebusaway.org/api/where'
-            self.params = {'key': 'e5ca6a2f-d074-4657-879e-6b572b3364bd'}
+    def _encode_id(self, id):
+        return id
+
+    def _decode_id(self, id):
+        return id
 
     def routes(self):
         agency = self.agency
 
-        url = '{0}/routes-for-agency/{1}.json'.format(self.url,
-                                                      agency.get_id())
+        url = '{0}/routes-for-agency/{1}.json' \
+            .format(self.url, self._decode_id(agency.get_id()))
         resp = self.session.get(url, params=self.params)
 
         routes = []
@@ -47,7 +41,7 @@ class OneBusAway(object):
             name += long_name if long_name else route['description']
 
             color = route['color'] if route['color'] else None
-            id = Route.create_id(agency.id, route['id'])
+            id = self._encode_id(Route.create_id(agency.id, route['id']))
             routes.append(Route(id=id, agency=agency, sign=short_name,
                                 name=name,
                                 type=route_types[int(route['type'])],
@@ -60,7 +54,8 @@ class OneBusAway(object):
         return routes
 
     def stops(self, route):
-        url = '{0}/stops-for-route/{1}.json'.format(self.url, route.get_id())
+        url = '{0}/stops-for-route/{1}.json' \
+            .format(self.url, self._decode_id(route.get_id()))
         params = dict(self.params)
         params['version'] = 2
 
@@ -71,8 +66,9 @@ class OneBusAway(object):
         data = resp.json()['data']
         stops = {}
         for stop in data['references']['stops']:
+            id = self._encode_id(Stop.create_id(route.agency.id, stop['id']))
             stop = Stop(agency=route.agency,
-                        id=Stop.create_id(route.agency.id, stop['id']),
+                        id=id,
                         name=stop['name'], lat=stop['lat'],
                         lon=stop['lon'], code=stop['code'],
                         type=stop_types[int(stop['locationType'])])
@@ -80,23 +76,107 @@ class OneBusAway(object):
         directions = []
         for stop_groupings in data['entry']['stopGroupings']:
             for stop_group in stop_groupings['stopGroups']:
-                id = Direction.create_id(route.id, stop_group['id'])
+                id = self._encode_id(Direction.create_id(route.id,
+                                                         stop_group['id']))
                 direction = Direction(route=route, id=id,
                                       name=stop_group['name']['name'])
-                direction.stop_ids = [Stop.create_id(route.agency.id, sid)
-                                      for sid in stop_group['stopIds']]
+                direction.stop_ids = \
+                    [self._encode_id(Stop.create_id(route.agency.id, sid))
+                     for sid in stop_group['stopIds']]
                 directions.append(direction)
 
         return (directions, stops)
 
-    def _siri_stop_predictions(self, stop):
+    def _stop_arrivals(self, stop):
+        url = '{0}/arrivals-and-departures-for-stop/{1}.json' \
+            .format(self.url, self._decode_id(stop.get_id()))
+
+        resp = requests.get(url, params=self.params)
+
+        dirs = {}
+
+        data = resp.json()
+        current_time = data['currentTime']
+        data = data['data']
+        if 'entry' in data:
+            data = data['entry']
+        arrivals = []
+        for arrival in data['arrivalsAndDepartures']:
+            away = (arrival['predictedArrivalTime'] - current_time) / 1000.0
+            typ = arrival_types[0]
+            if away == 0:
+                away = (arrival['scheduledArrivalTime'] - current_time) / 1000.0
+                typ = arrival_types[1]
+            if away >= 0:
+                dir_name = arrival['tripHeadsign']
+                if dir_name not in dirs:
+                    try:
+                        # TODO: handle routes that are stopping short/are
+                        # alternates
+                        dirs[dir_name] = \
+                                Direction.objects.get(name=dir_name).id
+                    except Direction.DoesNotExist:
+                        logger.warn('unknown direction (%s)', dir_name)
+                        continue
+                did = dirs[dir_name]
+                arrivals.append(Arrival(stop=stop, away=int(away), type=typ,
+                                        direction_id=did))
+
+        return arrivals
+
+    def _route_arrivals(self, stop, route):
+        url = '{0}/arrivals-and-departures-for-stop/{1}.json' \
+            .format(self.url, self._decode_id(stop.get_id()))
+
+        arrivals = []
+
+        resp = requests.get(url, params=self.params)
+
+        data = resp.json()
+        current_time = data['currentTime']
+        data = data['data']
+        if 'entry' in data:
+            data = data['entry']
+        route_id = self._decode_id(route.get_id())
+        for arrival in data['arrivalsAndDepartures']:
+            away = (arrival['predictedArrivalTime'] - current_time) / 1000.0
+            typ = arrival_types[0]
+            if away == 0:
+                away = (arrival['scheduledArrivalTime'] - current_time) / 1000.0
+                typ = arrival_types[1]
+            if arrival['routeId'] == route_id and away >= 0:
+                arrivals.append(Arrival(stop=stop, away=int(away), type=typ))
+
+        return arrivals
+
+    def arrivals(self, stop, route=None):
+        if route:
+            return self._route_arrivals(stop, route)
+        return self._stop_arrivals(stop)
+
+
+class OneBusAwayDdot(_OneBusAway):
+    url = 'http://ddot-beta.herokuapp.com/api/api/where'
+    params = {'key': 'BETA'}
+
+
+class OneBusAwayGaTech(_OneBusAway):
+    url = 'http://onebusaway.gatech.edu/api/api/where'
+    params = {'key': 'TEST'}
+
+
+class OneBusAwayMta(_OneBusAway):
+    url = 'http://bustime.mta.info/api/where'
+    params = {'key': 'a00d08e5-245d-4b58-8eee-e08aa7510e82'}
+
+    def _stop_arrivals(self, stop):
         url = 'http://bustime.mta.info/api/siri/stop-monitoring.json'
 
         # shares api keys with onebus
         params = dict(self.params)
         params['MonitoringRef'] =  stop.get_id().split('_')[1]
 
-        predictions = []
+        arrivals = []
 
         resp = requests.get(url, params=params)
 
@@ -110,12 +190,12 @@ class OneBusAway(object):
                                       visit['DirectionRef'])
             visit = visit['MonitoredCall']
             away = visit['Extensions']['Distances']['DistanceFromCall']
-            predictions.append(Prediction(stop=stop, away=int(away),
-                                          unit='meters', direction_id=did))
+            arrivals.append(Arrival(stop=stop, away=int(away),
+                                    unit=arrival_units[1], direction_id=did))
 
-        return predictions
+        return arrivals
 
-    def _siri_route_predictions(self, stop, route):
+    def _route_arrivals(self, stop, route):
         url = 'http://bustime.mta.info/api/siri/stop-monitoring.json'
 
         # shares api keys with onebus
@@ -123,7 +203,7 @@ class OneBusAway(object):
         params['MonitoringRef'] =  stop.get_id().split('_')[1]
         params['LineRef'] = route.get_id().split('_')[1]
 
-        predictions = []
+        arrivals = []
 
         resp = requests.get(url, params=params)
 
@@ -133,79 +213,24 @@ class OneBusAway(object):
         for visit in data['MonitoredStopVisit']:
             visit = visit['MonitoredVehicleJourney']['MonitoredCall']
             away = visit['Extensions']['Distances']['DistanceFromCall']
-            predictions.append(Prediction(stop=stop, away=int(away),
-                                          unit='meters'))
+            arrivals.append(Arrival(stop=stop, away=int(away),
+                                    unit=arrival_units[1]))
 
-        return predictions
+        return arrivals
 
-    def _siri_predictions(self, stop, route=None):
-        if route:
-            return self._siri_route_predictions(stop, route)
-        return self._siri_stop_predictions(stop)
 
-    def _stop_predictions(self, stop):
-        url = '{0}/arrivals-and-departures-for-stop/{1}.json' \
-            .format(self.url, stop.get_id())
+class OneBusAwaySea(_OneBusAway):
+    url = 'http://api.onebusaway.org/api/where'
+    params = {'key': 'e5ca6a2f-d074-4657-879e-6b572b3364bd'}
 
-        resp = requests.get(url, params=self.params)
 
-        dirs = {}
+class OneBusAwayUsf(_OneBusAway):
+    url = 'http://onebusaway.forest.usf.edu/api/api/where'
+    params = {'key': 'TEST'}
 
-        data = resp.json()
-        current_time = data['currentTime']
-        data = data['data']
-        if 'entry' in data:
-            data = data['entry']
-        predictions = []
-        for arrival in data['arrivalsAndDepartures']:
-            away = (arrival['predictedArrivalTime'] - current_time) / 1000.0
-            realtime = True
-            if away == 0:
-                away = (arrival['scheduledArrivalTime'] - current_time) / 1000.0
-                realtime = False
-            if away >= 0:
-                dir_name = arrival['tripHeadsign']
-                if dir_name not in dirs:
-                    dirs[dir_name] = Direction.objects.get(name=dir_name).id
-                did = dirs[dir_name]
-                predictions.append(Prediction(stop=stop, away=int(away),
-                                              unit='seconds', realtime=realtime,
-                                              direction_id=did))
+    def _encode_id(self, id):
+        return id.replace('Hillsborough Area Regional Transit', 'HART')
 
-        #predictions.sort(key=attrgetter('away'))
-        return predictions
+    def _decode_id(self, id):
+        return id.replace('HART', 'Hillsborough Area Regional Transit')
 
-    def _route_predictions(self, stop, route):
-        url = '{0}/arrivals-and-departures-for-stop/{1}.json' \
-            .format(self.url, stop.get_id())
-
-        predictions = []
-
-        resp = requests.get(url, params=self.params)
-
-        data = resp.json()
-        current_time = data['currentTime']
-        data = data['data']
-        if 'entry' in data:
-            data = data['entry']
-        route_id = route.get_id()
-        for arrival in data['arrivalsAndDepartures']:
-            away = (arrival['predictedArrivalTime'] - current_time) / 1000.0
-            realtime = True
-            if away == 0:
-                away = (arrival['scheduledArrivalTime'] - current_time) / 1000.0
-                realtime = False
-            if arrival['routeId'] == route_id and away >= 0:
-                predictions.append(Prediction(stop=stop, away=int(away),
-                                              unit='seconds',
-                                              realtime=realtime))
-
-        return predictions
-
-    def predictions(self, stop, route=None):
-        if self.agency.id.startswith('nyc:MTA'):
-            return self._siri_predictions(stop, route)
-
-        if route:
-            return self._route_predictions(stop, route)
-        return self._stop_predictions(stop)
