@@ -189,7 +189,7 @@ class StopManager(models.Manager):
         return Stop.objects.raw('''select * from (select s.*, 12756200 *
     asin(sqrt(pow(sin(radians(%s - lat) * 0.5), 2) +
               cos(radians(%s)) * cos(radians(lat)) *
-              pow(sin(radians(%s - lon) * 0.5, 2)))
+              pow(sin(radians(%s - lon) * 0.5), 2)))
     as distance from info_stop s
     where lat between %s and %s and lon between %s and %s
     order by distance) i where distance < %s limit 20''',
