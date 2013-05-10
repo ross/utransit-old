@@ -3,6 +3,7 @@
 #
 
 from collections import OrderedDict
+from django.core.cache import cache
 from www.info.models import Direction, Prediction, Route, Stop, \
     route_types, stop_types
 from xmltodict import parse
@@ -157,20 +158,46 @@ class Bart:
 
         return predictions
 
+    def _route_abbrs(self, route, stop):
+        '''finds all of the station abbrs for a given route and stop, cached
+        for performance'''
+        key = 'route_abbrs-{0}-{1}'.format(route.id, stop.id)
+        abbrs = cache.get(key)
+        if abbrs:
+            return abbrs
+
+        direction = Direction.objects.get(route=route, stops=stop)
+        abbrs = [sd.stop_id.split(':')[-1].split('-')[0]
+                 for sd in direction.stop_directions.all()]
+
+        cache.set(key, abbrs)
+
+        return abbrs
+
     def _route_predictions(self, stop, route):
-        abbr, dest = stop.get_id().split('-')
+        orig, dest = stop.get_id().split('-')
 
         url = '{0}{1}'.format(self.url, 'etd.aspx')
         params = dict(self.params)
         params['cmd'] = 'etd'
-        params['orig'] = abbr
+        params['orig'] = orig
         resp = requests.get(url, params=params)
+
+        # handle routes that are stopping short by finding all of the stops
+        # after the current one
+        laterAbbrs = set((dest,))
+        later = False
+        for abbr in self._route_abbrs(route, stop):
+            if later:
+                laterAbbrs.add(abbr)
+            elif abbr == orig:
+                later = True
 
         etds = parse(resp.content)['root']['station']['etd']
         if isinstance(etds, OrderedDict):
             etds = [etds]
         for direction in etds:
-            if not dest or direction['abbreviation'] == dest:
+            if direction['abbreviation'] in laterAbbrs:
                 predictions = []
                 estimates = direction['estimate']
                 if isinstance(estimates, OrderedDict):
