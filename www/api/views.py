@@ -242,14 +242,26 @@ class RouteStopStopSerializer(serializers.ModelSerializer):
         model = Stop
 
 
+class RouteStopRouteSerializer(serializers.ModelSerializer):
+    id = serializers.Field(source='get_id')
+    href = HRefField()
+    agency = AgencyRegionSerializer()
+
+    class Meta:
+        exclude = ('order',)
+        model = Route
+
+
 class RouteStopSerializer(serializers.ModelSerializer):
     id = serializers.Field(source='get_id')
-    agency = AgencyRegionSerializer()
     arrivals = RouteStopArrivalSerializer(many=True, source='get_arrivals')
     stops = RouteStopStopSerializer(many=True, source='get_stops')
+    # TODO: direction?
+    route = RouteStopRouteSerializer(source='_route')
     # TODO: other routes
 
     class Meta:
+        exclude = ('agency',)
         model = Stop
 
 
@@ -269,6 +281,7 @@ class RouteStopDetail(NoParsesMixin, generics.RetrieveAPIView):
         agency = stop.agency
         route = get_object_or_404(Route, pk=Route.create_id(agency.id, route))
         stop._arrivals = get_provider(stop.agency).arrivals(stop, route)
+        stop._route = route
         self.object = stop
         serializer = self.get_serializer(stop)
         return Response(serializer.data)
