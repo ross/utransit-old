@@ -221,6 +221,7 @@ class RouteStopArrivalSerializer(serializers.ModelSerializer):
         exclude = ('id', 'route', 'stop', 'direction')
         model = Arrival
 
+
 class RouteStopStopSerializer(serializers.ModelSerializer):
 
     # TODO: can this be turned in to a mix-in, it's repeated
@@ -269,8 +270,9 @@ class RouteStopDetail(NoParsesMixin, generics.RetrieveAPIView):
 
 ## Agency Stop
 
-class AgencyArrivalSerializer(serializers.ModelSerializer):
+class AgencyStopArrivalSerializer(serializers.ModelSerializer):
     direction = serializers.Field(source='direction.get_id')
+    destination = serializers.Field(source='destination.get_id')
     route = serializers.Field(source='direction.route.get_id')
 
     class Meta:
@@ -310,7 +312,7 @@ class AgencyStopRouteSerializer(serializers.ModelSerializer):
 
 class AgencyStopSerializer(serializers.ModelSerializer):
     id = serializers.Field(source='get_id')
-    arrivals = AgencyArrivalSerializer(many=True, source='get_arrivals')
+    arrivals = AgencyStopArrivalSerializer(many=True, source='get_arrivals')
     stops = RouteStopStopSerializer(many=True, source='get_stops')
     routes = AgencyStopRouteSerializer(many=True,
                                        source='get_routes')

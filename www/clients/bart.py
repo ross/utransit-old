@@ -113,19 +113,17 @@ class Bart:
 
         return ([direction_a, direction_b], stops)
 
-    # TODO: this isn't sufficent for routes that are stopping short
-    color_dest_to_dir = {
-        '#ffff33': {'SFIA': 'sf:bart:PITT-SFIA:1',
-                    'MLBR': 'sf:bart:PITT-SFIA:1',
-                    'PITT': 'sf:bart:PITT-SFIA:2'},
-        '#0099cc': {'DUBL': 'sf:bart:DALY-DUBL:11',
-                    'DALY': 'sf:bart:DALY-DUBL:12'},
-        '#339933': {'DALY': 'sf:bart:DALY-FRMT:5',
-                    'FRMT': 'sf:bart:DALY-FRMT:6'},
-        '#ff9933': {'RICH': 'sf:bart:FRMT-RICH:3',
-                    'FRMT': 'sf:bart:FRMT-RICH:4'},
-        '#ff0000': {'MLBR': 'sf:bart:MLBR-RICH:7',
-                    'RICH': 'sf:bart:MLBR-RICH:8'}
+    color_bearing_lookup = {
+        '#ffff33': {'North': ('PITT', 'sf:bart:PITT-SFIA:2'),
+                    'South': ('MLBR', 'sf:bart:PITT-SFIA:1')},
+        '#0099cc': {'North': ('DUBL', 'sf:bart:DALY-DUBL:11'),
+                    'South': ('DALY', 'sf:bart:DALY-DUBL:12')},
+        '#339933': {'North': ('FRMT', 'sf:bart:DALY-FRMT:6'),
+                    'South': ('DALY', 'sf:bart:DALY-FRMT:5')},
+        '#ff9933': {'North': ('RICH', 'sf:bart:FRMT-RICH:3'),
+                    'South': ('FRMT', 'sf:bart:FRMT-RICH:4')},
+        '#ff0000': {'North': ('RICH', 'sf:bart:MLBR-RICH:8'),
+                    'South': ('MLBR', 'sf:bart:MLBR-RICH:7')},
     }
 
     def _stop_arrivals(self, stop):
@@ -143,7 +141,8 @@ class Bart:
         if isinstance(etds, OrderedDict):
             etds = [etds]
         for destination in etds:
-            dest_abbr = destination['abbreviation']
+            # where this train is stopping
+            abbr = destination['abbreviation']
             estimates = destination['estimate']
             if isinstance(estimates, OrderedDict):
                 estimates = [estimates]
@@ -152,33 +151,26 @@ class Bart:
                     away = int(arrival['minutes']) * 60
                 except ValueError:
                     continue
+                # the color tells us which route it is and in combination with
+                # the direction tells we know the last station on the line
                 color = arrival['hexcolor']
-                try:
-                    did = self.color_dest_to_dir[color][dest_abbr]
-                    # TODO: determine destination stop
-                    arrivals.append(Arrival(stop=stop, away=away,
-                                            direction_id=did))
-                except KeyError:
-                    # TODO: see color_dest_to_dir comment
-                    pass
+                dest, dir_id = \
+                    self.color_bearing_lookup[color][arrival['direction']]
+                dest_id = Stop.create_id(stop.agency_id,
+                                         '{0}-{1}'.format(abbr, dest))
+                arrivals.append(Arrival(stop=stop, away=away,
+                                        direction_id=dir_id,
+                                        destination_id=dest_id))
 
         return arrivals
 
-    def _route_abbrs(self, route, stop):
-        '''finds all of the station abbrs for a given route and stop, cached
-        for performance'''
-        key = 'route_abbrs-{0}-{1}'.format(route.id, stop.id)
-        abbrs = cache.get(key)
-        if abbrs:
-            return abbrs
-
-        direction = Direction.objects.get(route=route, stops=stop)
-        abbrs = [sd.stop_id.split(':')[-1].split('-')[0]
-                 for sd in direction.stop_directions.all()]
-
-        cache.set(key, abbrs)
-
-        return abbrs
+    route_dest_to_bearing = {
+        'sf:bart:PITT-SFIA': {'MLBR': 'South', 'PITT': 'North'},
+        'sf:bart:DALY-DUBL': {'DALY': 'South', 'DUBL': 'North'},
+        'sf:bart:DALY-FRMT': {'DALY': 'South', 'FRMT': 'North'},
+        'sf:bart:FRMT-RICH': {'FRMT': 'South', 'RICH': 'North'},
+        'sf:bart:MLBR-RICH': {'MLBR': 'South', 'RICH': 'North'}
+    }
 
     def _route_arrivals(self, stop, route):
         orig, dest = stop.get_id().split('-')
@@ -189,38 +181,31 @@ class Bart:
         params['orig'] = orig
         resp = requests.get(url, params=params)
 
-        # handle routes that are stopping short by finding all of the stops
-        # after the current one
-        laterAbbrs = set((dest,))
-        later = False
-        for abbr in self._route_abbrs(route, stop):
-            if later:
-                laterAbbrs.add(abbr)
-            elif abbr == orig:
-                later = True
+        # we're looking for trains heading in which direction
+        bearing = self.route_dest_to_bearing[route.id][dest]
 
+        arrivals = []
         etds = parse(resp.content)['root']['station']['etd']
         if isinstance(etds, OrderedDict):
             etds = [etds]
         for direction in etds:
-            dest_abbr = direction['abbreviation']
-            if dest_abbr in laterAbbrs:
-                dest_id = Stop.create_id(stop.agency.id,
-                                         '{0}-{1}'.format(dest_abbr, dest))
-                arrivals = []
-                estimates = direction['estimate']
-                if isinstance(estimates, OrderedDict):
-                    estimates = [estimates]
-                for arrival in estimates:
+            dest_id = \
+                Stop.create_id(stop.agency.id,
+                               '{0}-{1}'.format(direction['abbreviation'],
+                                                dest))
+            estimates = direction['estimate']
+            if isinstance(estimates, OrderedDict):
+                estimates = [estimates]
+            for arrival in estimates:
+                if arrival['direction'] == bearing:
                     try:
                         away = int(arrival['minutes']) * 60
                     except ValueError:
                         continue
                     arrivals.append(Arrival(stop=stop, away=away,
                                             destination_id=dest_id))
-                return arrivals
 
-        return []
+        return arrivals
 
     def arrivals(self, stop, route=None):
         if route:
