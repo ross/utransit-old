@@ -143,20 +143,20 @@ class DirectionSerializer(serializers.ModelSerializer):
         model = Direction
 
 
-class RouteStopSerializer(serializers.ModelSerializer):
+class RouteDetailStopSerializer(serializers.ModelSerializer):
     id = serializers.Field(source='get_id')
 
     def field_to_native(self, obj, field_name):
         if field_name == 'stops':
             value = getattr(obj, self.source)
             return {v.get_id(): self.to_native(v) for v in value()}
-        return super(RouteStopSerializer, self).field_to_native(obj,
-                                                                field_name)
+        return super(RouteDetailStopSerializer, self) \
+            .field_to_native(obj, field_name)
 
     def to_native(self, obj):
         # since we have to add a route in to get a route specific stop
         # we need to manually compute and add the href
-        ret = super(RouteStopSerializer, self).to_native(obj)
+        ret = super(RouteDetailStopSerializer, self).to_native(obj)
         href = obj.get_absolute_url(self.context['route_slug'])
         ret['href'] = self.context['request'].build_absolute_uri(href)
         return ret
@@ -179,7 +179,7 @@ class AgencyRegionSerializer(serializers.ModelSerializer):
 class RouteDetailSerializer(serializers.ModelSerializer):
     id = serializers.Field(source='get_id')
     directions = DirectionSerializer(many=True)
-    stops = RouteStopSerializer(many=True, source='get_stops')
+    stops = RouteDetailStopSerializer(many=True, source='get_stops')
     agency = AgencyRegionSerializer()
 
     class Meta:
@@ -214,8 +214,14 @@ class RouteDetail(NoParsesMixin, generics.RetrieveAPIView):
 
 ## Route Stop
 
+class IdField(serializers.CharField):
+
+    def to_native(self, obj):
+        return obj.split(':')[-1] if obj else None
+
+
 class RouteStopArrivalSerializer(serializers.ModelSerializer):
-    destination = serializers.Field(source='destination.get_id')
+    destination = IdField(source='destination_id')
 
     class Meta:
         exclude = ('id', 'route', 'stop', 'direction')
@@ -229,8 +235,8 @@ class RouteStopStopSerializer(serializers.ModelSerializer):
         if field_name == 'stops':
             value = getattr(obj, self.source)
             return {v.get_id(): self.to_native(v) for v in value()}
-        return super(RouteStopSerializer, self).field_to_native(obj,
-                                                                field_name)
+        return super(RouteStopStopSerializer, self).field_to_native(obj,
+                                                                    field_name)
 
     class Meta:
         model = Stop
@@ -272,7 +278,7 @@ class RouteStopDetail(NoParsesMixin, generics.RetrieveAPIView):
 
 class AgencyStopArrivalSerializer(serializers.ModelSerializer):
     direction = serializers.Field(source='direction.get_id')
-    destination = serializers.Field(source='destination.get_id')
+    destination = IdField(source='destination_id')
     route = serializers.Field(source='direction.route.get_id')
 
     class Meta:
