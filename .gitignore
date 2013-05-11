@@ -3,3 +3,4 @@ data/
 *.db
 django.log
 *.pyc
+www/static/

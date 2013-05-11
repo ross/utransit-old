@@ -1,16 +1,12 @@
 #
 #
+#
 
 from os.path import dirname, join
 
-DEBUG = True
-TEMPLATE_DEBUG = DEBUG
+DEBUG = False
 
 ROOT = dirname(dirname(__file__))
-
-ADMINS = (
-)
-MANAGERS = ADMINS
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
@@ -28,10 +24,10 @@ REST_FRAMEWORK = {
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'gtfs',
-        'USER': 'gtfs',
-        'PASSWORD': 'gtfs',
+        'ENGINE': '',
+        'NAME': '',
+        'USER': '',
+        'PASSWORD': '',
     }
 }
 
@@ -42,7 +38,6 @@ CACHES = {
     }
 }
 
-ALLOWED_HOSTS = []
 TIME_ZONE = 'America/Los_Angeles'
 LANGUAGE_CODE = 'en-us'
 SITE_ID = 1
@@ -70,7 +65,7 @@ TEMPLATE_LOADERS = (
 )
 
 MIDDLEWARE_CLASSES = (
-    'debug_toolbar.middleware.DebugToolbarMiddleware',
+    'www.api.middleware.ExceptionLoggingMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -95,14 +90,12 @@ INSTALLED_APPS = (
     'www.info',
     'www.api',
     # third party apps
-    'debug_toolbar',
     'rest_framework',
     'rest_framework.authtoken',
 )
 
 LOGGING = {
     'version': 1,
-    'disable_existing_loggers': False,
     'formatters': {
         'simple': {
             'format': '%(asctime)s %(levelname)-5s %(name)s %(message)s',
@@ -132,9 +125,4 @@ LOGGING = {
             'level': 'INFO',
         },
     },
-}
-
-DEBUG_TOOLBAR_CONFIG = {
-    'INTERCEPT_REDIRECTS': False,
-    'SHOW_TOOLBAR_CALLBACK': lambda request: True,
 }

@@ -1,6 +1,7 @@
 Django
 django-filter
 djangorestframework
+gunicorn==0.13.4
 Markdown
 MySQL-python
 pycountry
