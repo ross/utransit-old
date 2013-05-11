@@ -30,7 +30,7 @@ class UpdateMixin(object):
         return changed
 
 
-class Region(models.Model):
+class Region(models.Model, IdMixin):
     id = models.CharField(max_length=8, primary_key=True)
     name = models.CharField(max_length=128)
     sign = models.CharField(max_length=12)
@@ -132,12 +132,6 @@ class Route(models.Model, IdMixin, UpdateMixin):
                              self.get_agency_id(self.id),
                              self.get_id()))
 
-    def get_stops(self):
-        stops = []
-        for direction in self.directions.all():
-            stops.extend(direction.stops.all())
-        return stops
-
     def __str__(self):
         return u'{0} ({1})'.format(self.name, self.agency_id)
 
@@ -158,6 +152,7 @@ class Direction(models.Model, IdMixin, UpdateMixin):
     def create_id(cls, route_id, id):
         return '{0}:{1}'.format(route_id, id)
 
+    # TODO: move to views.routes
     def get_stop_ids(self):
         return [s.stop_id.split(':')[-1]
                 for s in self.stop_directions.all()]
@@ -234,22 +229,6 @@ class Stop(models.Model, IdMixin, UpdateMixin):
         return reverse('stop-detail', args=(self.get_region_id(self.id),
                                             self.get_agency_id(self.id),
                                             self.get_id()))
-
-    # TODO: move these in to wrapper objects in the views, e.g.
-    # RouteStopStop():
-    #    def __init__(self, stop):
-    #        ...
-    #    def get_arrials(self):
-    #        ...
-    def get_arrivals(self):
-        return self._arrivals
-
-    def get_stops(self):
-        stop_ids = set([a.destination_id for a in self._arrivals])
-        return Stop.objects.filter(id__in=stop_ids)
-
-    def get_routes(self):
-        return self._routes
 
     def __str__(self):
         return u'{0} ({1})'.format(self.name, self.agency_id)
