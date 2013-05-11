@@ -6,7 +6,7 @@ from os.path import dirname, join
 
 DEBUG = False
 
-ROOT = dirname(dirname(__file__))
+ROOT = dirname(dirname(dirname(__file__)))
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
