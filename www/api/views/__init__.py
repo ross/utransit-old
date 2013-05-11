@@ -2,7 +2,7 @@
 #
 #
 
-from django.http import Http404, HttpResponseRedirect
+from django.http import HttpResponseRedirect
 from rest_framework.reverse import reverse
 from .agencies import AgencyDetail
 from .nearby import NearbyDetail

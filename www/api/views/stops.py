@@ -3,6 +3,7 @@
 #
 
 from django.db.models.query import prefetch_related_objects
+from django.http import Http404
 from django.shortcuts import get_object_or_404
 from operator import attrgetter
 from rest_framework import generics, serializers
