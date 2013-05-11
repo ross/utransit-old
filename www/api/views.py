@@ -13,6 +13,12 @@ from rest_framework.views import APIView
 from www.clients import get_provider
 from www.info.models import Agency, Arrival, Direction, Region, Route, Stop
 
+# TODO:
+#  - rework hierarchy to make sense. have base serializers for all of the
+#  objects with meta get_id, meta to exclude etc. that way objects will be
+#  consistent. then in specific views we can inherit to add extra fields for
+#  context, a la arrivals
+#  - get naming in order
 
 class NoParsesMixin(object):
 
@@ -208,17 +214,32 @@ class RouteDetail(NoParsesMixin, generics.RetrieveAPIView):
 
 ## Route Stop
 
-class RouteArrivalSerializer(serializers.ModelSerializer):
+class RouteStopArrivalSerializer(serializers.ModelSerializer):
+    destination = serializers.Field(source='destination.get_id')
 
     class Meta:
         exclude = ('id', 'route', 'stop', 'direction')
         model = Arrival
 
+class RouteStopStopSerializer(serializers.ModelSerializer):
 
-class StopDetailSerializer(serializers.ModelSerializer):
+    # TODO: can this be turned in to a mix-in, it's repeated
+    def field_to_native(self, obj, field_name):
+        if field_name == 'stops':
+            value = getattr(obj, self.source)
+            return {v.get_id(): self.to_native(v) for v in value()}
+        return super(RouteStopSerializer, self).field_to_native(obj,
+                                                                field_name)
+
+    class Meta:
+        model = Stop
+
+
+class RouteStopSerializer(serializers.ModelSerializer):
     id = serializers.Field(source='get_id')
     agency = AgencyRegionSerializer()
-    arrivals = RouteArrivalSerializer(many=True, source='get_arrivals')
+    arrivals = RouteStopArrivalSerializer(many=True, source='get_arrivals')
+    stops = RouteStopStopSerializer(many=True, source='get_stops')
     # TODO: other routes
 
     class Meta:
@@ -230,7 +251,7 @@ class RouteStopDetail(NoParsesMixin, generics.RetrieveAPIView):
     A Stop's details for a specific Route
     '''
     model = Stop
-    serializer_class = StopDetailSerializer
+    serializer_class = RouteStopSerializer
 
     def retrieve(self, request, region, agency, route, pk):
         try:
@@ -290,6 +311,7 @@ class AgencyStopRouteSerializer(serializers.ModelSerializer):
 class AgencyStopSerializer(serializers.ModelSerializer):
     id = serializers.Field(source='get_id')
     arrivals = AgencyArrivalSerializer(many=True, source='get_arrivals')
+    stops = RouteStopStopSerializer(many=True, source='get_stops')
     routes = AgencyStopRouteSerializer(many=True,
                                        source='get_routes')
 

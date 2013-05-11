@@ -87,7 +87,7 @@ class Bart:
         stop_ids = []
         stops = {}
         # dest
-        dest = abbrs.pop()
+        dest = abbrs[-1]
         for abbr in abbrs:
             # copy over the relevant stations
             stop = all_stops[abbr]
@@ -113,8 +113,10 @@ class Bart:
 
         return ([direction_a, direction_b], stops)
 
+    # TODO: this isn't sufficent for routes that are stopping short
     color_dest_to_dir = {
-        '#ffff33': {'MLBR': 'sf:bart:PITT-SFIA:1',
+        '#ffff33': {'SFIA': 'sf:bart:PITT-SFIA:1',
+                    'MLBR': 'sf:bart:PITT-SFIA:1',
                     'PITT': 'sf:bart:PITT-SFIA:2'},
         '#0099cc': {'DUBL': 'sf:bart:DALY-DUBL:11',
                     'DALY': 'sf:bart:DALY-DUBL:12'},
@@ -151,9 +153,14 @@ class Bart:
                 except ValueError:
                     continue
                 color = arrival['hexcolor']
-                did = self.color_dest_to_dir[color][dest_abbr]
-                arrivals.append(Arrival(stop=stop, away=away,
-                                        direction_id=did))
+                try:
+                    did = self.color_dest_to_dir[color][dest_abbr]
+                    # TODO: determine destination stop
+                    arrivals.append(Arrival(stop=stop, away=away,
+                                            direction_id=did))
+                except KeyError:
+                    # TODO: see color_dest_to_dir comment
+                    pass
 
         return arrivals
 
@@ -196,7 +203,10 @@ class Bart:
         if isinstance(etds, OrderedDict):
             etds = [etds]
         for direction in etds:
-            if direction['abbreviation'] in laterAbbrs:
+            dest_abbr = direction['abbreviation']
+            if dest_abbr in laterAbbrs:
+                dest_id = Stop.create_id(stop.agency.id,
+                                         '{0}-{1}'.format(dest_abbr, dest))
                 arrivals = []
                 estimates = direction['estimate']
                 if isinstance(estimates, OrderedDict):
@@ -206,7 +216,8 @@ class Bart:
                         away = int(arrival['minutes']) * 60
                     except ValueError:
                         continue
-                    arrivals.append(Arrival(stop=stop, away=away))
+                    arrivals.append(Arrival(stop=stop, away=away,
+                                            destination_id=dest_id))
                 return arrivals
 
         return []

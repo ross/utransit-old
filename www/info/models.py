@@ -235,8 +235,18 @@ class Stop(models.Model, IdMixin, UpdateMixin):
                                             self.get_agency_id(self.id),
                                             self.get_id()))
 
+    # TODO: move these in to wrapper objects in the views, e.g.
+    # RouteStopStop():
+    #    def __init__(self, stop):
+    #        ...
+    #    def get_arrials(self):
+    #        ...
     def get_arrivals(self):
         return self._arrivals
+
+    def get_stops(self):
+        stop_ids = set([a.destination_id for a in self._arrivals])
+        return Stop.objects.filter(id__in=stop_ids)
 
     def get_routes(self):
         return self._routes
