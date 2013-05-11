@@ -107,7 +107,11 @@ class NextBus(object):
         arrivals = []
         preds = parse(resp.content)['body']['predictions']
         if 'direction' in preds:
-            for prediction in preds['direction']['prediction']:
+            predictions = preds['direction']['prediction']
+            # TODO: come up with a helper to avoid this check everywhere
+            if isinstance(predictions, OrderedDict):
+                predictions = [predictions]
+            for prediction in predictions:
                 departure = prediction['@isDeparture'] == 'true'
                 arrivals.append(Arrival(stop=stop,
                                         away=int(prediction['@seconds'])))
