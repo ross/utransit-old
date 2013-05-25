@@ -165,11 +165,16 @@ class Bart:
         return arrivals
 
     route_dest_to_bearing = {
-        'sf:bart:PITT-SFIA': {'MLBR': 'South', 'PITT': 'North'},
-        'sf:bart:DALY-DUBL': {'DALY': 'South', 'DUBL': 'North'},
-        'sf:bart:DALY-FRMT': {'DALY': 'South', 'FRMT': 'North'},
-        'sf:bart:FRMT-RICH': {'FRMT': 'South', 'RICH': 'North'},
-        'sf:bart:MLBR-RICH': {'MLBR': 'South', 'RICH': 'North'}
+        'sf:bart:PITT-SFIA': {'MLBR': ('#ffff33', 'South'),
+                              'PITT': ('#ffff33', 'North')},
+        'sf:bart:DALY-DUBL': {'DALY': ('#0099cc', 'South'),
+                              'DUBL': ('#0099cc', 'North')},
+        'sf:bart:DALY-FRMT': {'DALY': ('#339933', 'South'),
+                              'FRMT': ('#339933', 'North')},
+        'sf:bart:FRMT-RICH': {'FRMT': ('#ff9933', 'South'),
+                              'RICH': ('#ff9933', 'North')},
+        'sf:bart:MLBR-RICH': {'MLBR': ('#ff0000', 'South'),
+                              'RICH': ('#ff0000', 'North')}
     }
 
     def _route_arrivals(self, stop, route):
@@ -182,7 +187,7 @@ class Bart:
         resp = requests.get(url, params=params)
 
         # we're looking for trains heading in which direction
-        bearing = self.route_dest_to_bearing[route.id][dest]
+        color, bearing = self.route_dest_to_bearing[route.id][dest]
 
         arrivals = []
         etds = parse(resp.content)['root']['station']['etd']
@@ -197,7 +202,9 @@ class Bart:
             if isinstance(estimates, OrderedDict):
                 estimates = [estimates]
             for arrival in estimates:
-                if arrival['direction'] == bearing:
+                # TODO: we should be looking for the right route
+                if arrival['hexcolor'] == color and \
+                   arrival['direction'] == bearing:
                     try:
                         away = int(arrival['minutes']) * 60
                     except ValueError:
