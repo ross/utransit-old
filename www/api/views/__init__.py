@@ -5,6 +5,7 @@
 from django.http import HttpResponseRedirect
 from rest_framework.reverse import reverse
 from .agencies import AgencyDetail
+from .legacy import LegacyNearby
 from .nearby import NearbyDetail
 from .regions import RegionDetail, RegionList
 from .routes import RouteDetail

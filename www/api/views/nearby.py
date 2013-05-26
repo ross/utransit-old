@@ -75,7 +75,8 @@ class NearbyDetail(NoParsesMixin, generics.RetrieveAPIView):
             # TODO: bad request, bad param
             raise
 
-        # we'll at most return 30 stops
+        # we'll at most return N stops
+        # TODO: limiting before filtering is bad
         stops = Stop.objects.nearby(lat, lon, radius)[:20]
 
         if region and agency:

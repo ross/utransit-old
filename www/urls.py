@@ -3,8 +3,8 @@ from django.contrib import admin
 from django.utils.decorators import available_attrs
 from django.views.decorators.cache import cache_page
 from functools import wraps
-from www.api.views import AgencyDetail, AgencyStopDetail, NearbyDetail, \
-    RegionDetail, RegionList, RouteDetail, RouteStopDetail
+from www.api.views import AgencyDetail, AgencyStopDetail, LegacyNearby, \
+    NearbyDetail, RegionDetail, RegionList, RouteDetail, RouteStopDetail
 
 admin.autodiscover()
 
@@ -58,7 +58,11 @@ urlpatterns += patterns('www.api.views',
                             NearbyDetail.as_view(), name='nearby-detail'),
                         url(r'^api/regions/(?P<region>[\w\-]+)'
                             r'/agencies/(?P<agency>[\w\- ]+)/nearby/$',
-                            NearbyDetail.as_view(), name='nearby-detail'))
+                            NearbyDetail.as_view(), name='nearby-detail'),
+
+                        url(r'^(?P<agency>[\w-]+)/stops/'
+                            r'(?P<lat>.+),(?P<lon>.+)$',
+                            LegacyNearby.as_view(), name='legacy-nearby'))
 
 urlpatterns += patterns('', url(r'^api-auth/',
                                 include('rest_framework.urls',
