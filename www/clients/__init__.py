@@ -25,6 +25,7 @@ _providers = {
 
 
 def get_provider(agency):
+    'return a provider instance for the given agency'
     try:
         return _providers[agency.provider](agency)
     except KeyError:
@@ -33,6 +34,7 @@ def get_provider(agency):
 
 @transaction.commit_manually
 def sync_agency(agency):
+    '''uses a client to cleanly sync an agency, getting it's data up-to-date'''
     try:
         _sync_agency(agency)
         transaction.commit()

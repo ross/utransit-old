@@ -10,6 +10,9 @@ if 'ENV' not in environ:
     raise ImproperlyConfigured('ENV environmental variable not specified')
 env = environ['ENV']
 
+# import our credentials, stuff that shouldn't be in scm
+from creds import *
+
 # import the based config (stuff that spans all situations)
 from .base import *
 

@@ -3,6 +3,7 @@
 #
 
 from os.path import dirname, join
+from ..settings import *
 
 DEBUG = False
 
@@ -20,6 +21,15 @@ REST_FRAMEWORK = {
         'www.api.renderers.JSONRenderer',
         'rest_framework.renderers.BrowsableAPIRenderer',
     )
+}
+
+API_KEYS = {
+    'BART': API_KEY_BART,
+    'ONE_BUS_AWAY_SEA': API_KEY_ONE_BUS_AWAY_SEA,
+    'ONE_BUS_AWAY_MTA': API_KEY_ONE_BUS_AWAY_MTA,
+    'ONE_BUS_AWAY_GATECH': API_KEY_ONE_BUS_AWAY_GATECH,
+    'ONE_BUS_AWAY_DDOT': API_KEY_ONE_BUS_AWAY_DDOT,
+    'ONE_BUS_AWAY_USF': API_KEY_ONE_BUS_AWAY_USF
 }
 
 DATABASES = {

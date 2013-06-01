@@ -2,6 +2,7 @@
 #
 #
 
+from django.conf import settings
 from www.info.models import Arrival, Direction, Route, Stop, arrival_types, \
     route_types, stop_types, arrival_units
 from .utils import RateLimitedSession, route_key
@@ -24,6 +25,7 @@ class _OneBusAway(object):
         return id
 
     def routes(self):
+        'returns a list of routes'
         agency = self.agency
 
         url = '{0}/routes-for-agency/{1}.json' \
@@ -54,6 +56,7 @@ class _OneBusAway(object):
         return routes
 
     def stops(self, route):
+        'returns a tuple, with a list of directions, and a map of stops'
         url = '{0}/stops-for-route/{1}.json' \
             .format(self.url, self._decode_id(route.get_id()))
         params = dict(self.params)
@@ -88,6 +91,7 @@ class _OneBusAway(object):
         return (directions, stops)
 
     def _stop_arrivals(self, stop):
+        'arrivals for all routes at a particular stop'
         url = '{0}/arrivals-and-departures-for-stop/{1}.json' \
             .format(self.url, self._decode_id(stop.get_id()))
 
@@ -126,6 +130,7 @@ class _OneBusAway(object):
         return arrivals
 
     def _route_arrivals(self, stop, route):
+        'arrivals for a route at a particular stop'
         url = '{0}/arrivals-and-departures-for-stop/{1}.json' \
             .format(self.url, self._decode_id(stop.get_id()))
 
@@ -152,6 +157,7 @@ class _OneBusAway(object):
         return arrivals
 
     def arrivals(self, stop, route=None):
+        'returns a list of arrivals'
         if route:
             return self._route_arrivals(stop, route)
         return self._stop_arrivals(stop)
@@ -159,17 +165,17 @@ class _OneBusAway(object):
 
 class OneBusAwayDdot(_OneBusAway):
     url = 'http://ddot-beta.herokuapp.com/api/api/where'
-    params = {'key': 'BETA'}
+    params = {'key': settings.API_KEYS['ONE_BUS_AWAY_DDOT']}
 
 
 class OneBusAwayGaTech(_OneBusAway):
     url = 'http://onebusaway.gatech.edu/api/api/where'
-    params = {'key': 'TEST'}
+    params = {'key': settings.API_KEYS['ONE_BUS_AWAY_GATECH']}
 
 
 class OneBusAwayMta(_OneBusAway):
     url = 'http://bustime.mta.info/api/where'
-    params = {'key': 'a00d08e5-245d-4b58-8eee-e08aa7510e82'}
+    params = {'key': settings.API_KEYS['ONE_BUS_AWAY_MTA']}
 
     def _stop_arrivals(self, stop):
         url = 'http://bustime.mta.info/api/siri/stop-monitoring.json'
@@ -223,12 +229,12 @@ class OneBusAwayMta(_OneBusAway):
 
 class OneBusAwaySea(_OneBusAway):
     url = 'http://api.onebusaway.org/api/where'
-    params = {'key': 'e5ca6a2f-d074-4657-879e-6b572b3364bd'}
+    params = {'key': settings.API_KEYS['ONE_BUS_AWAY_SEA']}
 
 
 class OneBusAwayUsf(_OneBusAway):
     url = 'http://onebusaway.forest.usf.edu/api/api/where'
-    params = {'key': 'TEST'}
+    params = {'key': settings.API_KEYS['ONE_BUS_AWAY_USF']}
 
     def _encode_id(self, id):
         return id.replace('Hillsborough Area Regional Transit', 'HART')

@@ -3,6 +3,7 @@
 #
 
 from collections import OrderedDict
+from django.conf import settings
 from django.core.cache import cache
 from www.info.models import Arrival, Direction, Route, Stop, route_types, \
     stop_types
@@ -13,7 +14,7 @@ import requests
 
 class Bart:
     url = 'http://api.bart.gov/api/'
-    params = {'key': 'MW9S-E7SL-26DU-VV8V'}
+    params = {'key': settings.API_KEYS['BART']}
 
     def __init__(self, agency):
         self.agency = agency
