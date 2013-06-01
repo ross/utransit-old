@@ -15,17 +15,23 @@ started.
 Getting Started
 ===============
 
+.. code-block:: shell
+
     git clone https://github.com/ross/utransit.git
     cd utransit
     virtualenv env
     source env/bin/activate
     pip install -r requirements.txt -r requirements-dev.txt
 
+.. code-block:: python
+
     # create a new file, creds.py, and open it in your editor, adding the
     # folowing line to it
     API_KEY_ONE_BUS_AWAY_SEA = '<your-sea-api-key>'
     # talk a look at the API_KEY variable in www/settings/base.py for other
     # possible providers/values
+
+.. code-block:: shell
 
     export ENV=dev
     ./manage.py syncdb
@@ -37,11 +43,15 @@ of this could be automated, but hasn't been (yet.)
 
 Go to the Region section and add a new region.
     
+.. code-block:: text
+
     id sea
     name Seattle Area
     sign SEA
 
 Then go to the Agency section and add a new agency.
+
+.. code-block:: text
 
     region, select SEA from the drop down
     id sea:1
@@ -50,8 +60,11 @@ Then go to the Agency section and add a new agency.
     provider, select OneBusAwaySea
     ...
 
+.. code-block:: shell
 
     ./manage.py shell
+
+.. code-block:: python
 
     from www.clients import sync_agency
     from www.info.models import Agency
