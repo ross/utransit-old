@@ -97,6 +97,7 @@ INSTALLED_APPS = (
     'django.contrib.staticfiles',
     'django.contrib.admin',
     # our apps
+    'www.gtfs',
     'www.info',
     'www.api',
     # third party apps
