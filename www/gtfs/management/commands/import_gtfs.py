@@ -48,6 +48,9 @@ class Command(BaseCommand):
 
         with oopen(join(directory, 'stops.txt')) as fh:
             for stop in DictReader(fh):
+                if 'wheelchair_boarding' in stop:
+                    stop['wheelchair_boarding'] = \
+                        stop['wheelchair_boarding'] != '0'
                 Stop(**{k.replace('stop_', ''): v
                         for k, v in stop.items()}).save()
 
@@ -60,6 +63,9 @@ class Command(BaseCommand):
 
         with oopen(join(directory, 'calendar.txt')) as fh:
             for calendar in DictReader(fh):
+                for k in ('monday', 'tuesday', 'wednesday', 'thursday',
+                          'friday', 'saturday', 'sunday'):
+                    calendar[k] = calendar[k] != '0'
                 Calendar(**calendar).save()
 
         with oopen(join(directory, 'calendar_dates.txt')) as fh:
@@ -81,6 +87,9 @@ class Command(BaseCommand):
                     trip['block_id'] = None
                 if trip.get('direction_id', None) == '':
                     trip['direction_id'] = None
+                if 'wheelchair_accessible' in trip:
+                    trip['wheelchair_accessible'] = \
+                        trip['wheelchair_accessible'] != '0'
                 Trip(**{k.replace('trip_', ''): v
                         for k, v in trip.items()}).save()
 
@@ -112,6 +121,8 @@ class Command(BaseCommand):
 
         with oopen(join(directory, 'frequencies.txt')) as fh:
             for frequency in DictReader(fh):
+                if 'exact_times' in frequency:
+                    frequency['exact_times'] = frequency['exact_times'] != '0'
                 Frequency(**frequency).save()
 
         with oopen(join(directory, 'transfers.txt')) as fh:
