@@ -34,12 +34,12 @@ class CreateStopArrivals(object):
         cursor = connection.cursor()
 
         query = '''select t.id, t.route_id, t.direction_id,
-                       st.arrival_time, st.departure_time
-                       from gtfs_stoptime st join
-                       gtfs_trip t on st.trip_id = t.id
-                       where st.stop_id = %s and t.service_id in ({0})
-                       order by st.arrival_time''' \
-                       .format(', '.join(['%s' for x in active_service_ids]))
+                st.arrival_time, st.departure_time
+                from gtfs_stoptime st join
+                gtfs_trip t on st.trip_id = t.id
+                where st.stop_id = %s and t.service_id in ({0})
+                order by st.arrival_time''' \
+                .format(', '.join(['%s' for x in active_service_ids]))
 
         cursor.execute(query, [stop_id] + active_service_ids)
 

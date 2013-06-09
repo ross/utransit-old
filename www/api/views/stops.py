@@ -2,6 +2,7 @@
 #
 #
 
+from datetime import datetime
 from django.db.models.query import prefetch_related_objects
 from django.http import Http404
 from django.shortcuts import get_object_or_404
@@ -9,7 +10,7 @@ from operator import attrgetter
 from rest_framework import generics, serializers
 from rest_framework.response import Response
 from www.clients import get_provider
-from www.info.models import Agency, Route, Stop
+from www.gtfs.models import Agency, Route, Stop, Scheduled
 from .mixins import NoParsesMixin
 from .utils import Adapter
 from ..serializers import AgencySerializer, ArrivalSerializer, \
@@ -152,16 +153,17 @@ class RouteStopDetail(NoParsesMixin, generics.RetrieveAPIView):
 
     def retrieve(self, request, region, agency, route, pk):
         try:
-            stop = Stop.objects.select_related('agency', 'agency__region') \
-                .get(pk=Stop.create_id(Agency.create_id(region, agency), pk))
+            stop = Stop.objects.get(pk=pk)
         except Stop.DoesNotExist:
             raise Http404('No Route matches the given query.')
-        agency = stop.agency
+        route = get_object_or_404(Route, pk='01')
 
-        route = get_object_or_404(Route, pk=Route.create_id(agency.id, route))
-        arrivals = get_provider(stop.agency).arrivals(stop, route)
+        now = datetime.now().strftime('%H:%M:%S')
+        arrivals = Scheduled.objects.filter(stop_id=pk,
+                                            direction_id='01:1',
+                                            arrival_time__gte=now)
 
-        self.object = StopAdapter(stop, arrivals=arrivals, route=route)
+        self.object = StopAdapter(stop, arrivals=arrivals[:5], route=route)
 
         serializer = self.get_serializer(self.object)
         return Response(serializer.data)

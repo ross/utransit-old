@@ -3,7 +3,8 @@
 #
 
 from rest_framework import serializers
-from www.info.models import Agency, Arrival, Direction, Region, Route, Stop
+from www.gtfs.models import Agency, Direction, Route, Scheduled, Stop
+from www.info.models import Region
 
 
 class HRefField(serializers.Field):
@@ -81,9 +82,12 @@ class StopSerializer(serializers.ModelSerializer):
 
 
 class ArrivalSerializer(serializers.ModelSerializer):
+    away = serializers.Field()
+    type = serializers.Field()
+    units = serializers.Field()
     destination = IdOrBlankField(source='destination_id')
     direction = IdOrBlankField(source='direction_id')
 
     class Meta:
-        exclude = {'id', 'stop'}
-        model = Arrival
+        exclude = {'id', 'arrival_time', 'departure_time', 'stop', 'trip'}
+        model = Scheduled

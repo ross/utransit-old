@@ -2,8 +2,16 @@
 #
 #
 
-from datetime import date
+from datetime import date, datetime
 from django.db import models
+from rest_framework.reverse import reverse
+
+
+# TODO: make this a "real" class that allows > 24 times
+class TimeField(models.CharField):
+
+    def __init__(self):
+        super(TimeField, self).__init__(max_length=32)
 
 
 ## GTFS spec objects
@@ -17,6 +25,19 @@ class Agency(models.Model):
     phone = models.CharField(max_length=32, blank=True, null=True)
     fare_url = models.URLField(max_length=256)
 
+    region = None
+
+    @classmethod
+    def get_region_id(cls, agency_id):
+        return agency_id.split(':')[0]
+
+    def get_absolute_url(self):
+        return reverse('agency-detail',
+                       args=(self.get_region_id(self.id), self.get_id()))
+
+    def get_id(self):
+        return self.id
+
 
 class Route(models.Model):
     agency = models.ForeignKey(Agency, related_name='routes')
@@ -28,6 +49,23 @@ class Route(models.Model):
     url = models.URLField(max_length=256, null=True, blank=True)
     color = models.CharField(max_length=8, null=True, blank=True)
     text_color = models.CharField(max_length=8, null=True, blank=True)
+
+    @classmethod
+    def get_region_id(cls, route_id):
+        return 'xxx'
+
+    @classmethod
+    def get_agency_id(cls, route_id):
+        return 'yyy'
+
+    def get_absolute_url(self):
+        return reverse('route-detail',
+                       args=(self.get_region_id(self.id),
+                             self.get_agency_id(self.id),
+                             self.get_id()))
+
+    def get_id(self):
+        return self.id
 
 
 class Trip(models.Model):
@@ -57,6 +95,27 @@ class Stop(models.Model):
     timezone = models.CharField(max_length=32, null=True, blank=True)
     wheelchair_boarding = models.NullBooleanField(null=True, blank=True)
 
+    @classmethod
+    def get_region_id(cls, stop_id):
+        return 'xxx'
+
+    @classmethod
+    def get_agency_id(cls, stop_id):
+        return 'yyy'
+
+    def get_id(self):
+        return self.id
+
+    def get_absolute_url(self, route_slug=None):
+        if route_slug:
+            return reverse('stop-route-detail',
+                           args=(self.get_region_id(self.id),
+                                 self.get_agency_id(self.id),
+                                 route_slug, self.get_id()))
+        return reverse('stop-detail', args=(self.get_region_id(self.id),
+                                            self.get_agency_id(self.id),
+                                            self.get_id()))
+
     def __str__(self):
         return u'{0} ({1})'.format(self.id, self.name)
 
@@ -64,8 +123,8 @@ class Stop(models.Model):
 class StopTime(models.Model):
     trip = models.ForeignKey(Trip, related_name='times')
     stop = models.ForeignKey(Stop, related_name='times')
-    arrival_time = models.CharField(max_length=32)
-    departure_time = models.CharField(max_length=32)
+    arrival_time = TimeField()
+    departure_time = TimeField()
     stop_sequence = models.IntegerField()
     stop_headsign = models.CharField(max_length=32, null=True, blank=True)
     pickup_type = models.IntegerField(null=True, blank=True)
@@ -87,6 +146,7 @@ class Calendar(models.Model):
 
     @classmethod
     def active(cls, when=None):
+        # TODO: move this to a manager
         if when is None:
             when = date.today()
         wday = ('monday', 'tuesday', 'wednesday', 'thursday', 'friday',
@@ -135,8 +195,8 @@ class Shape(models.Model):
 
 class Frequency(models.Model):
     trip = models.ForeignKey(Trip, related_name='frequencies')
-    start_time = models.CharField(max_length=32)
-    end_time = models.CharField(max_length=32)
+    start_time = TimeField()
+    end_time = TimeField()
     headway_secs = models.IntegerField()
     exact_times = models.NullBooleanField(null=True, blank=True)
 
@@ -190,16 +250,26 @@ class Scheduled(models.Model):
     trip = models.ForeignKey(Trip, related_name='arrivals')
     direction = models.ForeignKey(Direction, related_name='arrivals')
     stop = models.ForeignKey(Stop, related_name='arrivals')
-    arrival_time = models.CharField(max_length=32)
-    departure_time = models.CharField(max_length=32)
+    arrival_time = TimeField()
+    departure_time = TimeField()
     destination = models.ForeignKey(Stop,
                                     related_name='scheduled_destinations')
     # headsign?
+
+    def type(self):
+        return 'scheduled'
+
+    def units(self):
+        return 'seconds'
+
+    def away(self):
+        h, m, s = [int(v) for v in self.arrival_time.split(':')]
+        now = datetime.now()
+        return ((h - now.hour) * 3600) + ((m - now.minute) * 60) + \
+            s - now.second
 
     def __str__(self):
         return u'{0} {1}'.format(self.direction_id, self.arrival_time)
 
     class Meta:
-        unique_together = (
-            ('stop', 'direction', 'arrival_time'),
-        )
+        unique_together = (('stop', 'direction', 'arrival_time'),)
