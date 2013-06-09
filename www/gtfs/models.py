@@ -2,6 +2,7 @@
 #
 #
 
+from datetime import date
 from django.db import models
 
 
@@ -83,6 +84,21 @@ class Calendar(models.Model):
     sunday = models.BooleanField()
     start_date = models.CharField(max_length=8)
     end_date = models.CharField(max_length=8)
+
+    @classmethod
+    def active(cls, when=None):
+        if when is None:
+            when = date.today()
+        wday = ('monday', 'tuesday', 'wednesday', 'thursday', 'friday',
+               'saturday', 'sunday')[when.weekday()]
+        day = when.strftime('%Y%m%d')
+
+        params = {wday: 1, 'start_date__lt': day, 'end_date__gte': day}
+        # TODO: handle service exceptions
+        return Calendar.objects.filter(**params)
+
+    def __str__(self):
+        return u'{0}'.format(self.service_id)
 
 
 class CalendarDate(models.Model):
