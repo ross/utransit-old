@@ -5,6 +5,8 @@
 from django.db import models
 
 
+## GTFS spec objects
+
 class Agency(models.Model):
     id = models.CharField(max_length=32, primary_key=True)
     name = models.CharField(max_length=128)
@@ -53,6 +55,9 @@ class Stop(models.Model):
     parent_station = models.ForeignKey('Stop', null=True, blank=True)
     timezone = models.CharField(max_length=32, null=True, blank=True)
     wheelchair_boarding = models.NullBooleanField(null=True, blank=True)
+
+    def __str__(self):
+        return u'{0} ({1})'.format(self.id, self.name)
 
 
 class StopTime(models.Model):
@@ -134,3 +139,51 @@ class FeedInfo(models.Model):
     start_date = models.CharField(max_length=8, null=True, blank=True)
     end_date = models.CharField(max_length=8, null=True, blank=True)
     version = models.CharField(max_length=32, blank=True, null=True)
+
+
+## Service Related Objects
+
+class Direction(models.Model):
+    id = models.CharField(max_length=32, primary_key=True)
+    route = models.ForeignKey(Route, related_name='directions')
+
+    stops = models.ManyToManyField('Stop', through='DirectionStop',
+                                   related_name='directions')
+
+    @classmethod
+    def create_id(cls, route_id, id):
+        return '{0}:{1}'.format(route_id, id)
+
+    def __str__(self):
+        return u'{0}'.format(self.id)
+
+
+class DirectionStop(models.Model):
+    direction = models.ForeignKey(Direction,
+                                  related_name='direction_stop_direction')
+    stop = models.ForeignKey(Stop, related_name='direction_stop_stop')
+    sequence = models.IntegerField()
+
+    def __str__(self):
+        return u'{0} {1} {2}'.format(self.direction_id, self.stop_id,
+                                     self.sequence)
+
+
+class Scheduled(models.Model):
+    # should only need the trip_id for matching to realtime stuff
+    trip = models.ForeignKey(Trip, related_name='arrivals')
+    direction = models.ForeignKey(Direction, related_name='arrivals')
+    stop = models.ForeignKey(Stop, related_name='arrivals')
+    arrival_time = models.CharField(max_length=32)
+    departure_time = models.CharField(max_length=32)
+    destination = models.ForeignKey(Stop,
+                                    related_name='scheduled_destinations')
+    # headsign?
+
+    def __str__(self):
+        return u'{0} {1}'.format(self.direction_id, self.arrival_time)
+
+    class Meta:
+        unique_together = (
+            ('stop', 'direction', 'arrival_time'),
+        )
